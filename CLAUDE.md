@@ -8,6 +8,8 @@
 - Before opening a PR, run `npm run check`, `npm test` and `npm run e2e` (builds, then runs a
   browser smoke test with the production Content-Security-Policy from `public/_headers`).
   In Claude cloud sessions set `CHROMIUM_PATH=/opt/pw-browsers/chromium` for `npm run e2e`.
+- Dependabot (`.github/dependabot.yml`) opens weekly update PRs; review them like any other PR.
+  Don't use `npm audit fix --force`: it can downgrade packages across major versions.
 - Bump `version` in `package.json` for user-visible changes. Releases are made by
   pushing a `vX.Y.Z` tag after merge (builds the offline zip).
 
