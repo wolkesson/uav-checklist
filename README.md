@@ -15,6 +15,19 @@ and can be deployed in an airgapped environment.
 
 ## Development
 
+### In the browser (GitHub Codespaces)
+
+On GitHub: **Code → Codespaces → Create codespace on main**. Dependencies install automatically;
+then run `npm run dev` in the terminal and the app opens in a preview tab.
+
+### On your own machine
+
+Needs Node.js 22 and Git. Clone, open the folder in VS Code and accept the recommended extensions.
+Press **F5** to start the dev server and open the app in Chrome with debugging, or use
+**Terminal → Run Task** for `check`, `test` and `package offline zip`.
+
+### Commands
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173

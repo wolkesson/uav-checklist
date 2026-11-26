@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // Cloudflare Pages, in a sub-folder, or from a local server in an airgapped network.
 export default defineConfig({
   base: './',
+  server: { host: process.env.CODESPACES || process.env.REMOTE_CONTAINERS ? true : 'localhost' },
   plugins: [
     svelte(),
     VitePWA({
