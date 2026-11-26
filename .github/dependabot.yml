@@ -20,6 +20,9 @@ updates:
       # change deliberately (CI, Cloudflare and dev machines together).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 is blocked until svelte-check supports it (see issue #9).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
