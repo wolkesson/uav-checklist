@@ -4,5 +4,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "uav-checklist",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./dist" }
+  "assets": { "directory": "./dist" },
+  // Required by `wrangler preview`, which Cloudflare runs for non-production branches.
+  // Empty: previews use the same assets and settings as production.
+  "previews": {}
 }
