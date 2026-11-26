@@ -5,6 +5,12 @@
   (`feat/...`, `fix/...`, `docs/...`) and is merged through a pull request.
 - Each branch gets a Cloudflare preview build. The owner tests the preview URL
   before merging; merging to `main` deploys production.
+- **Every pull request description links to its Cloudflare preview**, under a "Preview"
+  heading. The address is the branch name with `/` replaced by `-`, followed by
+  `-uav-checklist.henrik-wolkesson.workers.dev`, e.g. branch `feat/list-icons` →
+  https://feat-list-icons-uav-checklist.henrik-wolkesson.workers.dev. After the first
+  Cloudflare build, check the address against the Cloudflare bot's comment on the PR and
+  correct the description if it differs (long branch names may be shortened).
 - Before opening a PR, run `npm run check`, `npm test` and `npm run e2e` (builds, then runs a
   browser smoke test with the production Content-Security-Policy from `public/_headers`).
   In Claude cloud sessions set `CHROMIUM_PATH=/opt/pw-browsers/chromium` for `npm run e2e`.
