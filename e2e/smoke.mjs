@@ -76,9 +76,17 @@ try {
   ]).catch(() => [null])
   if (!download || !download.suggestedFilename().endsWith('.docx')) fail('Word export did not download a .docx')
 
+  // Browser Back returns to the list from print (opened via the editor) and from edit.
+  await page.goBack()
+  await page.getByRole('button', { name: 'New checklist' }).waitFor({ timeout: 3000 }).catch(() => fail('Back from print did not return to the list'))
+  await page.locator('.card').first().getByRole('button', { name: 'Edit checklist' }).click()
+  await page.goBack()
+  await page.getByRole('button', { name: 'New checklist' }).waitFor({ timeout: 3000 }).catch(() => fail('Back from edit did not return to the list'))
+  if (!page.url().startsWith(BASE)) fail(`Back left the app: ${page.url()}`)
+
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, logo upload, print preview, Word export, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, logo upload, print preview, Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }
