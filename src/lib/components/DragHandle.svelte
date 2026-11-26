@@ -212,7 +212,10 @@
     display: inline-grid; place-items: center;
     cursor: grab; touch-action: none; user-select: none; -webkit-touch-callout: none;
     color: var(--muted);
+    /* A grip, not a button: no frame or fill. The 40 px touch area stays (invisible). */
+    border: none; background: none; border-radius: 6px;
   }
+  .handle:hover { color: var(--fg); }
   .handle:active { cursor: grabbing; }
   .handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .menu {

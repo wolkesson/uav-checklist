@@ -29,6 +29,8 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 
 ## Reordering
 - Lists are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
+  The handle is shown as a plain grip icon without a button frame (it is a grip, not a button),
+  but keeps a 40 px touch area and a visible focus ring for keyboard users.
 - Dragging must never be the only way (WCAG 2.2, 2.5.7). Every handle also supports:
   - **keyboard:** focus the handle and press Arrow Up / Arrow Down; the new position is announced;
   - **single tap or click** without dragging: a small menu with "Move up" / "Move down".
