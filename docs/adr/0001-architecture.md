@@ -26,3 +26,17 @@ free web app and later run as a standalone app in an airgapped environment.
 - Data is per browser/device. Users must export to back up or move lists. Sync is a later, opt-in feature.
 - Any feature that needs the network (maps, weather, NOTAMs) must be optional and degrade gracefully offline.
 - Changing the data model means bumping `SCHEMA_VERSION` and adding a migration plus a test.
+
+---
+
+# ADR 0002: Printing and export
+
+Date: 2026-11-26 · Status: Accepted
+
+| Decision | Why |
+|----------|-----|
+| **Print and PDF share one HTML layout**, paginated in JavaScript into fixed-size pages; PDF via the browser's "Save as PDF". | What you see in the preview is exactly what prints. No PDF library, works offline. |
+| **Pagination is our own** (`src/lib/print/layout.ts`): rows are measured, then boxes are flowed into columns and pages. Short (≤ 8 rows) and emergency boxes never split; titles never sit alone at a column bottom; bullet groups stay with their parent. | CSS multi-column cannot repeat headers/footers with page numbers or keep these rules reliably. |
+| **Word export with the `docx` library**, loaded only when used. Rows are single cells with a right-aligned tab for the value, like the original Word template. | Produces an editable .docx that follows the same page size, columns and box styles. Word does its own pagination, so page breaks can differ slightly from the PDF. |
+| **The logo is stored inside each checklist** as a PNG data URL (converted and downscaled on upload). | Shared checklist files print with the right logo. Customer logos and documents are never committed: `.gitignore` blocks `private/`, `*.docx`, `*.pdf` and image files. |
+

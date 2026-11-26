@@ -2,7 +2,7 @@
  * Checklist data model. This is the contract for storage and for import/export
  * files, so changes must bump SCHEMA_VERSION and add a migration in migrate().
  */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 export const FILE_KIND = 'uav-checklist'
 
 export type ItemKind = 'check' | 'note' | 'value'
@@ -16,12 +16,38 @@ export interface ChecklistItem {
   expected?: string
   /** Marks items that must never be skipped. */
   critical?: boolean
+  /** 1 = indented bullet under the previous item. */
+  level?: 0 | 1
+  /** Highlighted row, e.g. "ON ABORT ... LAND". */
+  highlight?: 'abort'
 }
+
+/** Box style used when printing: black, blue (info / first flight) or red (emergency). */
+export type SectionStyle = 'normal' | 'info' | 'emergency'
+export const SECTION_STYLES: { value: SectionStyle; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'info', label: 'Info (blue)' },
+  { value: 'emergency', label: 'Emergency (red)' },
+]
+
+export type PaperSize = 'A5' | 'A4' | 'Letter'
+export const PAPER_SIZES: Record<PaperSize, { width: number; height: number }> = {
+  A5: { width: 148, height: 210 },
+  A4: { width: 210, height: 297 },
+  Letter: { width: 215.9, height: 279.4 },
+}
+
+export interface PrintSettings {
+  paper: PaperSize
+  columns: 1 | 2
+}
+export const DEFAULT_PRINT: PrintSettings = { paper: 'A5', columns: 2 }
 
 export interface ChecklistSection {
   id: string
   /** Phase name, e.g. "Pre-flight", "Before takeoff", "Post-flight". */
   title: string
+  style?: SectionStyle
   items: ChecklistItem[]
 }
 
@@ -32,6 +58,13 @@ export interface Checklist {
   aircraft?: string
   description?: string
   revision: number
+  /** Date shown next to the revision in the printed header, YYYY-MM-DD. */
+  revisionDate?: string
+  /** Footer text on every printed page, e.g. aircraft and app versions it applies to. */
+  effectivity?: string
+  /** Company logo for the printed header, as a PNG data URL. Travels with exported files. */
+  logo?: string
+  print?: PrintSettings
   updatedAt: string
   sections: ChecklistSection[]
 }
@@ -57,6 +90,9 @@ export const newChecklist = (title = 'New checklist'): Checklist => ({
   aircraft: '',
   description: '',
   revision: 1,
+  revisionDate: new Date().toISOString().slice(0, 10),
+  effectivity: '',
+  print: { ...DEFAULT_PRINT },
   updatedAt: new Date().toISOString(),
   sections: [newSection('Pre-flight')],
 })
@@ -80,7 +116,8 @@ export function migrate(data: { schemaVersion: number; checklists: unknown[] }):
   if (data.schemaVersion > SCHEMA_VERSION) {
     throw new Error(`File is from a newer app version (schema ${data.schemaVersion}). Update the app.`)
   }
-  // v1 is the first version; future: if (data.schemaVersion < 2) { ... }
+  // v1 -> v2 only added optional fields (style, level, highlight, revisionDate,
+  // effectivity, logo, print), so v1 data is already valid v2 data.
   data.checklists.forEach(assertChecklist)
   return data.checklists as Checklist[]
 }

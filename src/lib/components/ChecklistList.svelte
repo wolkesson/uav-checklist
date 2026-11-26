@@ -1,8 +1,10 @@
 <script lang="ts">
   import { app, removeChecklist, importChecklists } from '../store.svelte'
   import { download, parseFile, safeFilename } from '../io'
+  import Markup from './Markup.svelte'
 
-  let { onNew, onEdit, onRun }: { onNew: () => void; onEdit: (id: string) => void; onRun: (id: string) => void } = $props()
+  let { onNew, onEdit, onRun, onPrint }:
+    { onNew: () => void; onEdit: (id: string) => void; onRun: (id: string) => void; onPrint: (id: string) => void } = $props()
   let error = $state('')
 
   async function onImport(e: Event) {
@@ -31,12 +33,13 @@
     {#each app.checklists as c (c.id)}
       <li class="card">
         <div>
-          <strong>{c.title}</strong>
+          <strong><Markup text={c.title} /></strong>
           <div class="muted small">{c.aircraft || '—'} · rev {c.revision} · {c.sections.reduce((n, s) => n + s.items.length, 0)} items</div>
         </div>
         <div class="actions">
           <button class="primary" onclick={() => onRun(c.id)}>Run</button>
           <button onclick={() => onEdit(c.id)}>Edit</button>
+          <button onclick={() => onPrint(c.id)}>Print</button>
           <button onclick={() => download([c], safeFilename(c.title))}>Export</button>
           <button class="danger" onclick={() => confirm(`Delete "${c.title}"?`) && removeChecklist(c.id)}>Delete</button>
         </div>

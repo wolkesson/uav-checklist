@@ -26,3 +26,12 @@ dist-ssr
 *.sln
 *.sw?
 release/
+
+# Never commit customer documents, logos or exported checklists.
+private/
+*.docx
+*.pdf
+*.gif
+*.png
+*.jpg
+*.jpeg

@@ -6,11 +6,16 @@ and can be deployed in an airgapped environment.
 > The bundled sample checklist is an example only. Always follow your aircraft
 > manufacturer's procedures and your local regulations.
 
-## Features (v0.1)
+## Features (v0.2)
 
 - Create and edit checklists: sections (flight phases), items, expected response, critical flag, revision number
 - Run mode: tick items off, progress and open-critical count, reset; printable
 - Import / export as JSON files (single list or all)
+- Print layout matching a Word checklist: header with logo, title and revision; footer with
+  effectivity and page number; black / blue / red section boxes; striped rows; bullets; abort rows
+- Paper size A5 (default), A4 or Letter; one or two (default) columns
+- Print, Save as PDF (through the browser's print dialog) and export to Word (.docx)
+- Inline formatting in any text: `*italic*`, `**bold**`, `^superscript^`
 - Saved automatically in the browser; installable as a PWA and works offline
 
 ## Development
@@ -65,6 +70,7 @@ src/lib/storage.ts      persistence interface + localStorage implementation
 src/lib/io.ts           import / export files
 src/lib/store.svelte.ts app state
 src/lib/components/     list, editor, runner
+src/lib/print/          print layout engine, print preview, Word export
 samples/                example checklist files
 scripts/                offline packaging + local server
 docs/adr/               architecture decisions

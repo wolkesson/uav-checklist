@@ -1,7 +1,7 @@
 {
   "name": "uav-checklist",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,5 +23,8 @@
     "vitest": "^5.1.2",
     "wrangler": "^4.168.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "docx": "^9.16.0"
+  }
 }
