@@ -40,12 +40,24 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 
   | Action | Icon |
   |---|---|
+  | Back | `ArrowLeft` |
   | Run | `Play` |
   | Edit | `SquarePen` |
   | Print / PDF / Word | `Printer` |
   | Export file | `Share` |
   | Delete | `Trash2` |
+  | Move up / down | `ArrowUp` / `ArrowDown` |
+  | Add item / section | `Plus` (with text) |
+  | Bullet under item above (toggle) | `ListIndentIncrease` |
+  | Critical item (toggle) | `CircleAlert` |
+  | Abort row (toggle) | `OctagonX` |
+  | Choose logo | `ImageUp` (with text) |
   | Warning in dialogs | `TriangleAlert` |
+
+- **On/off settings** use icon toggle buttons (`IconButton` with `pressed`): when on, the button
+  gets an accent outline and tint and `aria-pressed="true"`. The tooltip names the setting.
+- Actions without a well-known icon (e.g. "New revision") stay text buttons; adding items or
+  sections uses icon plus text.
 
 ## Offline and security
 - No external assets: no CDN, web fonts or remote images. Icons are compiled into the app.

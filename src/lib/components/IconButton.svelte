@@ -11,12 +11,15 @@
     label,
     variant = 'default',
     tipAlign = 'center',
+    pressed = undefined,
     onclick,
   }: {
     icon: Component<{ size?: number | string; 'aria-hidden'?: boolean | 'true' }>
     label: string
     variant?: 'default' | 'primary' | 'danger'
     tipAlign?: 'center' | 'end'
+    /** Set for on/off toggles: true = on. Announced to screen readers via aria-pressed. */
+    pressed?: boolean
     onclick?: () => void
   } = $props()
 
@@ -50,6 +53,8 @@
   type="button"
   class="icon-btn {variant} tip-{tipAlign}"
   class:tip-touch={tipOnTouch}
+  class:pressed
+  aria-pressed={pressed}
   aria-label={label}
   data-tip={label}
   onclick={click}
@@ -71,6 +76,8 @@
   .icon-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
   /* Solid red, not just a red icon: readable on low-contrast and sunlit screens. */
   .icon-btn.danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
+  /* Toggle that is on: accent outline and tint, plus the icon in the accent colour. */
+  .icon-btn.pressed { border-color: var(--accent); background: var(--pressed-bg); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .icon-btn::after {
