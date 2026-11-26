@@ -1,12 +1,13 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { ArrowDown, ArrowUp, GripVertical } from '@lucide/svelte'
-  import { shiftFor, targetIndex } from '../reorder'
+  import { shiftFor, singleUnits, targetIndex, type Unit } from '../reorder'
 
   /**
    * Drag handle for reordering rows (docs/ui-guidelines.md, "Reordering").
    * The row must have the attribute `data-sortable-item`; its sibling rows with the same
-   * attribute form the list. Three ways to move a row:
+   * attribute form the list. Rows can be grouped into units (e.g. an item with its bullets)
+   * that move as one block; `index` and `count` then refer to units. Three ways to move:
    *  - drag the handle (mouse, pen or touch);
    *  - keyboard: focus the handle and press Arrow Up / Arrow Down;
    *  - tap or click without dragging: a menu with Move up / Move down (WCAG 2.2, 2.5.7).
@@ -15,12 +16,17 @@
     index,
     count,
     label,
+    units = undefined,
     onmove,
   }: {
+    /** Position of this handle's unit. */
     index: number
+    /** Number of units in the list. */
     count: number
     /** What is moved, e.g. "item" or "section"; used in the tooltip and announcements. */
     label: string
+    /** Row ranges that move together; default: every row on its own. */
+    units?: Unit[]
     onmove: (from: number, to: number) => void
   } = $props()
 
@@ -37,9 +43,9 @@
   interface Drag {
     pointerId: number
     startY: number // document coordinates
-    rows: HTMLElement[]
-    tops: number[]
-    heights: number[]
+    groups: HTMLElement[][] // rows of each unit
+    tops: number[] // per unit, document coordinates
+    heights: number[] // per unit
     from: number
     to: number
     step: number
@@ -58,29 +64,31 @@
   function onPointerDown(e: PointerEvent) {
     if (e.button !== 0 || !button) return
     const rows = rowsOf(button)
-    if (rows.length < 2) return
+    const u = units ?? singleUnits(rows.length)
+    if (u.length < 2) return
     button.setPointerCapture(e.pointerId)
-    const rects = rows.map((r) => r.getBoundingClientRect())
-    const tops = rects.map((r) => r.top + scrollY)
-    const heights = rects.map((r) => r.height)
-    // Distance between neighbouring rows, including the gap between them.
+    const groups = u.map(([s, end]) => rows.slice(s, end))
+    const tops = groups.map((g) => g[0].getBoundingClientRect().top + scrollY)
+    const heights = groups.map((g, i) => g[g.length - 1].getBoundingClientRect().bottom + scrollY - tops[i])
     const from = index
-    const neighbour = from + 1 < rows.length ? from + 1 : from - 1
-    const step = Math.abs(tops[neighbour] - tops[from]) || heights[from]
-    drag = { pointerId: e.pointerId, startY: e.clientY + scrollY, rows, tops, heights, from, to: from, step, active: false, lastClientY: e.clientY }
+    // Other units move by the dragged unit's height plus the gap between units.
+    const next = from + 1 < u.length ? from + 1 : from - 1
+    const gap = next > from ? tops[next] - (tops[from] + heights[from]) : tops[from] - (tops[next] + heights[next])
+    const step = heights[from] + Math.max(0, gap)
+    drag = { pointerId: e.pointerId, startY: e.clientY + scrollY, groups, tops, heights, from, to: from, step, active: false, lastClientY: e.clientY }
   }
 
   function update() {
     if (!drag) return
     const dy = drag.lastClientY + scrollY - drag.startY
-    const { rows, tops, heights, from, step } = drag
-    rows[from].style.transform = `translateY(${dy}px)`
+    const { groups, tops, heights, from, step } = drag
+    for (const r of groups[from]) r.style.transform = `translateY(${dy}px)`
     const mids = tops.map((t, i) => t + heights[i] / 2)
     drag.to = targetIndex(mids[from] + dy, mids, from)
-    rows.forEach((r, i) => {
+    groups.forEach((g, i) => {
       if (i === from) return
       const s = shiftFor(i, from, drag!.to, step)
-      r.style.transform = s ? `translateY(${s}px)` : ''
+      for (const r of g) r.style.transform = s ? `translateY(${s}px)` : ''
     })
   }
 
@@ -92,8 +100,8 @@
       if (Math.abs(dy) < DRAG_THRESHOLD) return
       drag.active = true
       menuOpen = false
-      drag.rows[drag.from].classList.add('dragging')
-      drag.rows.forEach((r, i) => { if (i !== drag!.from) r.style.transition = 'transform .15s ease' })
+      for (const r of drag.groups[drag.from]) r.classList.add('dragging')
+      drag.groups.forEach((g, i) => { if (i !== drag!.from) for (const r of g) r.style.transition = 'transform .15s ease' })
       // Keep scrolling while the pointer rests near the top or bottom edge.
       drag.scrollTimer = setInterval(() => {
         if (!drag) return
@@ -108,7 +116,7 @@
   function reset() {
     if (!drag) return
     clearInterval(drag.scrollTimer)
-    for (const r of drag.rows) {
+    for (const r of drag.groups.flat()) {
       r.style.transform = ''
       r.style.transition = ''
       r.classList.remove('dragging')

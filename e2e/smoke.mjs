@@ -93,6 +93,21 @@ try {
   await page.getByRole('button', { name: 'Move down', exact: true }).click()
   if ((await order()) !== 'BCA') fail(`menu reorder: expected BCA, got ${await order()}`)
 
+  // Bullets move with their parent: make C a bullet under B, then move B down past A.
+  await page.getByRole('button', { name: 'Bullet under the item above' }).nth(1).click()
+  await handles.nth(0).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await order()) !== 'ABC') fail(`group move: expected ABC (B kept its bullet C), got ${await order()}`)
+  if ((await page.getByRole('button', { name: 'Bullet under the item above' }).nth(2).getAttribute('aria-pressed')) !== 'true') fail('C is no longer a bullet after the group move')
+  // Dragging A to the bottom lands after the whole B group, never between B and its bullet.
+  const a = await handles.nth(0).boundingBox()
+  const last = await handles.nth(2).boundingBox()
+  await page.mouse.move(a.x + 20, a.y + 20)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + 20, a.y + 20 + ((last.y + 40 - a.y) * i) / 10)
+  await page.mouse.up()
+  if ((await order()) !== 'BCA') fail(`drag past a group: expected BCA, got ${await order()}`)
+
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
@@ -105,7 +120,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, reorder by drag/keyboard/menu, logo upload, print preview, Word export, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, reorder by drag/keyboard/menu with bullet groups, logo upload, print preview, Word export, CSP applied)')
 } finally {
   server.kill()
 }

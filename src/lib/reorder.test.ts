@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveItem, shiftFor, targetIndex } from './reorder'
+import { itemUnits, moveItem, moveUnit, shiftFor, singleUnits, targetIndex, unitOf } from './reorder'
 
 describe('moveItem', () => {
   it('moves down and up', () => {
@@ -38,5 +38,36 @@ describe('shiftFor', () => {
   })
   it('opens a gap above when dragging up', () => {
     expect([0, 1, 2].map((i) => shiftFor(i, 3, 1, 20))).toEqual([0, 20, 20])
+  })
+})
+
+describe('units (items with their bullets)', () => {
+  // A, a1, a2 (bullets of A), B, C, c1
+  const levels = [0, 1, 1, 0, 0, 1]
+  it('groups each item with the bullets below it', () => {
+    expect(itemUnits(levels)).toEqual([[0, 3], [3, 4], [4, 6]])
+    expect(itemUnits([1, 0, 1])).toEqual([[0, 1], [1, 3]]) // leading bullet stands alone
+  })
+  it('finds the unit of a row', () => {
+    const u = itemUnits(levels)
+    expect([0, 2, 3, 5].map((i) => unitOf(u, i))).toEqual([0, 0, 1, 2])
+  })
+  it('moves an item down together with its bullets', () => {
+    const a = ['A', 'a1', 'a2', 'B', 'C', 'c1']
+    moveUnit(a, itemUnits(levels), 0, 1)
+    expect(a).toEqual(['B', 'A', 'a1', 'a2', 'C', 'c1'])
+  })
+  it('moves an item to the end and to the top', () => {
+    const a = ['A', 'a1', 'a2', 'B', 'C', 'c1']
+    moveUnit(a, itemUnits(levels), 0, 2)
+    expect(a).toEqual(['B', 'C', 'c1', 'A', 'a1', 'a2'])
+    const b = ['A', 'a1', 'a2', 'B', 'C', 'c1']
+    moveUnit(b, itemUnits(levels), 2, 0)
+    expect(b).toEqual(['C', 'c1', 'A', 'a1', 'a2', 'B'])
+  })
+  it('single units behave like moveItem', () => {
+    const a = ['x', 'y', 'z']
+    moveUnit(a, singleUnits(3), 0, 2)
+    expect(a).toEqual(['y', 'z', 'x'])
   })
 })

@@ -7,7 +7,8 @@
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
   import DragHandle from './DragHandle.svelte'
-  import { moveItem } from '../reorder'
+  import { itemUnits, moveItem, moveUnit, singleUnits, unitOf, type Unit } from '../reorder'
+  import type { ChecklistSection } from '../model'
 
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
@@ -28,6 +29,18 @@
 
   function move<T>(arr: T[], from: number, to: number) {
     if (moveItem(arr, from, to)) touch(c)
+  }
+
+  /**
+   * Units for an item's drag handle: a top-level item moves with its bullets and lands
+   * only between whole groups; a bullet moves on its own.
+   */
+  function unitsFor(sec: ChecklistSection, i: number): Unit[] {
+    return sec.items[i].level === 1 ? singleUnits(sec.items.length) : itemUnits(sec.items.map((it) => it.level ?? 0))
+  }
+
+  function moveItemUnit(sec: ChecklistSection, units: Unit[], from: number, to: number) {
+    if (moveUnit(sec.items, units, from, to)) touch(c)
   }
 
   function newRevision() {
@@ -94,9 +107,13 @@
     </div>
 
     {#each s.items as item, ii (item.id)}
+      {@const units = unitsFor(s, ii)}
+      {@const u = unitOf(units, ii)}
       <div class="item" data-sortable-item class:bullet={item.level === 1}>
         <div class="handle">
-          <DragHandle index={ii} count={s.items.length} label="item" onmove={(f, t) => move(s.items, f, t)} />
+          <DragHandle index={u} count={units.length} units={units}
+            label={units[u][1] - units[u][0] > 1 ? 'item with its bullets' : 'item'}
+            onmove={(f, t) => moveItemUnit(s, units, f, t)} />
         </div>
         <div class="indent">
           <IconButton icon={ListIndentIncrease} label="Bullet under the item above" pressed={item.level === 1}
