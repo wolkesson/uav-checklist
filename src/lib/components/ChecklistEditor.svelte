@@ -12,6 +12,7 @@
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
   let logoError = $state('')
+  let logoInput = $state<HTMLInputElement>()
   let sectionToDelete = $state<number | null>(null)
   let confirmOpen = $state(false)
 
@@ -63,24 +64,32 @@
 </div>
 
 <div class="fields" oninput={() => touch(c)}>
-  <label>Title <input bind:value={c.title} /></label>
-  <div class="two">
-    <label>Revision <input type="number" min="1" bind:value={c.revision} /></label>
-    <label>Revision date <input type="date" bind:value={c.revisionDate} /></label>
+  <div class="meta-head">
+    <div class="logo-col">
+      <span class="logo-label" id="logo-label">Logo (printed header)</span>
+      <button type="button" class="logo-drop" class:has-logo={!!c.logo} aria-labelledby="logo-label logo-action"
+        onclick={() => logoInput?.click()}>
+        {#if c.logo}
+          <img src={c.logo} alt="" />
+          <span class="logo-hint overlay" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to change</span>
+        {:else}
+          <span class="logo-hint" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to upload</span>
+        {/if}
+      </button>
+      <input bind:this={logoInput} type="file" accept="image/*" hidden onchange={onLogo} />
+      {#if c.logo}<IconButton icon={Trash2} label="Remove logo" variant="danger" onclick={() => { c.logo = undefined; touch(c) }} />{/if}
+    </div>
+    <div class="meta-head-fields">
+      <label>Title <input bind:value={c.title} /></label>
+      <div class="two">
+        <label>Revision <input type="number" min="1" bind:value={c.revision} /></label>
+        <label>Revision date <input type="date" bind:value={c.revisionDate} /></label>
+      </div>
+    </div>
   </div>
   <label>Aircraft <input bind:value={c.aircraft} placeholder="e.g. model / serial" /></label>
   <label>Effectivity (printed footer) <input bind:value={c.effectivity} placeholder="e.g. Effectivity: DJI Mavic 3 App 1.13.9" /></label>
   <label>Description <textarea bind:value={c.description} rows="2"></textarea></label>
-  <div class="logo-row">
-    <span>Logo (printed header)</span>
-    {#if c.logo}<img src={c.logo} alt="Current logo" />{/if}
-    <label class="button icon-text">
-      <ImageUp size={20} aria-hidden="true" />{c.logo ? 'Change logo…' : 'Choose logo…'}
-      <input type="file" accept="image/*" hidden onchange={onLogo} />
-    </label>
-    {#if c.logo}<IconButton icon={Trash2} label="Remove logo" variant="danger" onclick={() => { c.logo = undefined; touch(c) }} />{/if}
-    <span class="muted small">Saved inside this checklist and included when you export it.</span>
-  </div>
   {#if logoError}<p class="error" role="alert">{logoError}</p>{/if}
   <p class="muted small">Formatting in any text: <code>*italic*</code>, <code>**bold**</code>, <code>^superscript^</code>.</p>
 </div>
@@ -133,8 +142,26 @@
 
 <style>
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .logo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; }
-  .logo-row img { max-height: 40px; max-width: 160px; background: #fff; padding: 2px; border: 1px solid var(--border); border-radius: 4px; }
+  /* Logo upload area first (top left), title and revision beside it. */
+  .meta-head { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .meta-head-fields { display: grid; gap: 8px; }
+  .logo-col { display: grid; gap: 4px; justify-items: start; font-size: .9rem; }
+  .logo-drop {
+    position: relative; width: 200px; height: 96px; padding: 8px; overflow: hidden;
+    display: grid; place-items: center; border: 2px dashed var(--border); border-radius: 8px; background: var(--card);
+  }
+  .logo-drop:hover, .logo-drop:focus-visible { border-color: var(--accent); }
+  .logo-drop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .logo-drop.has-logo { border-style: solid; background: #fff; }
+  .logo-drop img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .logo-hint { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .logo-hint.overlay {
+    position: absolute; inset: 0; justify-content: center; background: rgb(17 24 39 / .75); color: #fff;
+    opacity: 0; transition: opacity .15s;
+  }
+  .logo-drop:hover .overlay, .logo-drop:focus-visible .overlay { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .logo-hint.overlay { transition: none; } }
+  @media (max-width: 520px) { .meta-head { grid-template-columns: minmax(0, 1fr); } }
   .icon-text { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
   .text-btn { min-height: 40px; }
   input, select { min-height: 40px; }

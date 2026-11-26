@@ -54,8 +54,10 @@ try {
 
   await page.getByRole('button', { name: 'New checklist' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Smoke test')
+  if (!(await page.getByRole('button', { name: 'Logo (printed header) Click to upload' }).count())) fail('logo upload area missing')
   await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
-  await page.locator('.logo-row img').waitFor({ timeout: 5000 }).catch(() => fail('logo upload did not show the logo'))
+  await page.locator('.logo-drop img').waitFor({ timeout: 5000 }).catch(() => fail('logo upload did not show the logo'))
+  if (!(await page.getByRole('button', { name: 'Logo (printed header) Click to change' }).count())) fail('logo area does not offer to change the logo')
 
   // Editor: icon toggles report their state; critical toggles on and off.
   const critical = page.getByRole('button', { name: 'Critical item (never skip)' }).first()

@@ -51,7 +51,7 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Bullet under item above (toggle) | `ListIndentIncrease` |
   | Critical item (toggle) | `CircleAlert` |
   | Abort row (toggle) | `OctagonX` |
-  | Choose logo | `ImageUp` (with text) |
+  | Upload / change logo | `ImageUp` (with text, in the logo upload area) |
   | Warning in dialogs | `TriangleAlert` |
 
 - **On/off settings** use icon toggle buttons (`IconButton` with `pressed`): when on, the button
