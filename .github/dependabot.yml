@@ -15,6 +15,11 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     # Major updates come as separate PRs, since they can need code changes.
+    ignore:
+      # Node type definitions follow the Node version in .node-version, which we
+      # change deliberately (CI, Cloudflare and dev machines together).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

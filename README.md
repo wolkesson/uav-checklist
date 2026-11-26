@@ -27,7 +27,7 @@ then run `npm run dev` in the terminal and the app opens in a preview tab.
 
 ### On your own machine
 
-Needs Node.js 22 and Git. Clone, open the folder in VS Code and accept the recommended extensions.
+Needs Node.js 24 (see `.node-version`) and Git. Clone, open the folder in VS Code and accept the recommended extensions.
 Press **F5** to start the dev server and open the app in Chrome with debugging, or use
 **Terminal → Run Task** for `check`, `test` and `package offline zip`.
 
