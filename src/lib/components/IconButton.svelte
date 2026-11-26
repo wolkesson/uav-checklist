@@ -69,7 +69,8 @@
     -webkit-touch-callout: none; user-select: none;
   }
   .icon-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-  .icon-btn.danger { color: var(--danger); }
+  /* Solid red, not just a red icon: readable on low-contrast and sunlit screens. */
+  .icon-btn.danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
   .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .icon-btn::after {

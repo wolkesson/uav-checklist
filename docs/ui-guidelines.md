@@ -7,7 +7,9 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 ## Buttons and actions
 - **One primary action per group**, filled with the accent colour (e.g. *Run* in a checklist row).
   Other actions use the default outlined style.
-- **Destructive actions are red** (icon or text) and placed **last** in their group.
+- **Destructive actions have a solid red background** with a white icon or text, and are placed
+  **last** in their group. A red icon or red text alone is too hard to see on low-contrast or
+  sunlit screens.
 - **Icon-only buttons** are allowed for frequent, well-known actions in lists and toolbars.
   Every icon-only button must have:
   - an accessible name (`aria-label`) that says what happens, e.g. "Delete checklist";
@@ -19,7 +21,7 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Actions that lose **significant data** need a confirmation dialog: deleting a checklist,
   deleting a section that still has items, replacing data on import.
 - The dialog names the object ("Delete “Pre-flight A”?"), says what happens and whether it can
-  be undone, and uses the verb on the confirm button ("Delete"), styled red.
+  be undone, and uses the verb on the confirm button ("Delete"), with a solid red background.
 - **Cancel has the focus** when the dialog opens, so Enter never deletes by accident.
   Esc and clicking Cancel close the dialog without changes.
 - Small, easily redone edits (deleting one item while editing) need no confirmation.
