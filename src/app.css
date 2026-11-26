@@ -72,6 +72,17 @@ input[type=checkbox] { width: auto; }
 @keyframes tip-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .has-tip::after { animation: none; } }
 
-/* Row being dragged by a DragHandle. */
-[data-sortable-item].dragging { position: relative; z-index: 15; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); background: var(--card); }
+/* Dragging (DragHandle): the source rows dim in place, a label follows the pointer,
+   and a line shows where the rows will land. */
+[data-sortable-item].drag-source { opacity: .4; }
+.is-dragging .has-tip::after { display: none !important; }
+.is-dragging { cursor: grabbing; }
+.drop-indicator { position: absolute; height: 3px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; z-index: 30; }
+.drag-ghost {
+  position: fixed; left: 0; top: 0; z-index: 31; pointer-events: none;
+  max-width: min(60vw, 360px); overflow: hidden; text-overflow: ellipsis; white-space: pre;
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--bg); color: var(--fg); font-weight: 600; font-size: .9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+}
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -34,8 +34,12 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Dragging must never be the only way (WCAG 2.2, 2.5.7). Every handle also supports:
   - **keyboard:** focus the handle and press Arrow Up / Arrow Down; the new position is announced;
   - **single tap or click** without dragging: a small menu with "Move up" / "Move down".
-- While dragging, the row lifts (shadow) and the other rows move aside to show where it lands;
-  the page scrolls when the pointer is near the top or bottom edge.
+- While dragging, the source row stays in place but dimmed, a label with its text follows the
+  pointer, and a blue line shows where it will land. The page scrolls near the top or bottom edge.
+- Items can move **between sections** (drag into another section, also an empty one; with the
+  keyboard or menu, moving past the first or last item continues into the neighbouring section).
+- An item moves **together with its bullets** and lands only between whole groups; a single bullet
+  moves on its own.
 
 ## Touch, contrast and readability
 - Touch targets at least **40 × 40 px** (WCAG 2.2 requires 24 px; 40 px+ suits gloves).

@@ -6,9 +6,8 @@
   import { plainText } from '../markup'
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
-  import DragHandle from './DragHandle.svelte'
-  import { itemUnits, moveItem, moveUnit, singleUnits, unitOf, type Unit } from '../reorder'
-  import type { ChecklistSection } from '../model'
+  import DragHandle, { type MoveFrom, type MoveTo } from './DragHandle.svelte'
+  import { moveBlock } from '../reorder'
 
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
@@ -27,18 +26,15 @@
     }
   }
 
-  function move<T>(arr: T[], from: number, to: number) {
-    if (moveItem(arr, from, to)) touch(c)
+  function moveSection(from: MoveFrom, to: MoveTo) {
+    if (moveBlock(c.sections, [from.start, from.end], c.sections, to.at)) touch(c)
   }
 
-  /**
-   * Units for an item's drag handle: a top-level item moves with its bullets and lands
-   * only between whole groups; a bullet moves on its own.
-   */
-  function unitsFor(sec: ChecklistSection, i: number): Unit[] {
-    return sec.items[i].type === 'bullet'
-      ? singleUnits(sec.items.length)
-      : itemUnits(sec.items.map((it) => (it.type === 'bullet' ? 1 : 0)))
+  /** Moves items (an item with its bullets, or one bullet) within or between sections. */
+  function moveItems(from: MoveFrom, to: MoveTo) {
+    const src = c.sections.find((x) => x.id === from.list)
+    const dst = c.sections.find((x) => x.id === to.list)
+    if (src && dst && moveBlock(src.items, [from.start, from.end], dst.items, to.at)) touch(c)
   }
 
   function setType(item: ChecklistItem, t: ItemType) {
@@ -46,9 +42,6 @@
     touch(c)
   }
 
-  function moveItemUnit(sec: ChecklistSection, units: Unit[], from: number, to: number) {
-    if (moveUnit(sec.items, units, from, to)) touch(c)
-  }
 
   function newRevision() {
     c.revision++
@@ -104,10 +97,11 @@
     <strong>Critical</strong> must never be skipped; <strong>Abort</strong> is a highlighted row when printed.</p>
 </div>
 
+<div class="sections" data-sortable-list data-group="sections" data-list-id="sections" data-list-label="the checklist">
 {#each c.sections as s, si (s.id)}
-  <section class="section" data-sortable-item aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
+  <section class="section" data-sortable-item data-drag-label={plainText(s.title) || 'Section'} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
     <div class="section-head">
-      <DragHandle index={si} count={c.sections.length} label="section" onmove={(f, t) => move(c.sections, f, t)} />
+      <DragHandle id={s.id} group="sections" label="section" onmove={moveSection} />
       <input class="section-title" bind:value={s.title} aria-label="Section title" />
       <select bind:value={s.style} aria-label="Box style when printed">
         {#each SECTION_STYLES as st (st.value)}<option value={st.value}>{st.label}</option>{/each}
@@ -115,14 +109,14 @@
       <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
     </div>
 
+    <div class="items" data-sortable-list data-group="items" data-list-id={s.id} data-list-label={`section ${plainText(s.title)}`}>
     {#each s.items as item, ii (item.id)}
-      {@const units = unitsFor(s, ii)}
-      {@const u = unitOf(units, ii)}
-      <div class="item type-{itemType(item)}" data-sortable-item>
+      <div class="item type-{itemType(item)}" data-sortable-item data-bullet={item.type === 'bullet' || undefined}
+        data-drag-label={plainText(item.text) || 'Empty item'}>
         <div class="handle">
-          <DragHandle index={u} count={units.length} units={units}
-            label={units[u][1] - units[u][0] > 1 ? 'item with its bullets' : 'item'}
-            onmove={(f, t) => moveItemUnit(s, units, f, t)} />
+          <DragHandle id={item.id} group="items" groupBullets={item.type !== 'bullet'}
+            label={item.type !== 'bullet' && s.items[ii + 1]?.type === 'bullet' ? 'item with its bullets' : 'item'}
+            onmove={moveItems} />
         </div>
         <input class="text" bind:value={item.text} placeholder="Item to check" aria-label="Item to check" />
         <input class="expected" bind:value={item.expected} placeholder="Expected" aria-label="Expected response" />
@@ -135,9 +129,11 @@
         </div>
       </div>
     {/each}
+    </div>
     <button class="icon-text" onclick={() => { s.items.push(newItem()); touch(c) }}><Plus size={20} aria-hidden="true" />Add item</button>
   </section>
 {/each}
+</div>
 <button class="icon-text" onclick={() => { c.sections.push(newSection()); touch(c) }}><Plus size={20} aria-hidden="true" />Add section</button>
 
 <ConfirmDialog
@@ -158,7 +154,10 @@
   select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
   code { font-size: .85em; }
 
-  .section { display: grid; gap: 8px; }
+  .sections { display: grid; gap: 12px; margin-bottom: 12px; }
+  .section { display: grid; gap: 8px; margin: 0; }
+  /* An empty section still has room to drop items into. */
+  .items { display: grid; gap: 6px; min-height: 12px; }
   .section-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 40px; gap: 6px; align-items: center; }
   .section-title { font-weight: 600; }
   .row-actions { display: flex; gap: 4px; }

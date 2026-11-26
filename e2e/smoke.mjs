@@ -109,6 +109,31 @@ try {
   await page.mouse.up()
   if ((await order()) !== 'BCA') fail(`drag past a group: expected BCA, got ${await order()}`)
 
+  // Moving items between sections: keyboard at the edge of a section, and dragging.
+  await page.getByRole('button', { name: 'Add section' }).click()
+  const sec = (n) => page.locator('.section').nth(n)
+  const textsOf = async (n) => (await sec(n).locator('.item .text').evaluateAll((els) => els.map((e) => e.value || '_'))).join('')
+  const dragTo = async (handle, y) => {
+    const h = await handle.boundingBox()
+    await page.mouse.move(h.x + 20, h.y + 20)
+    await page.mouse.down()
+    for (let i = 1; i <= 12; i++) await page.mouse.move(h.x + 20, h.y + 20 + ((y - h.y - 20) * i) / 12)
+    await page.mouse.up()
+  }
+  // A is the last item of section 1: Arrow Down moves it to the top of section 2.
+  await sec(0).locator('.item .handle button').nth(2).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await textsOf(0)) !== 'BC' || (await textsOf(1)) !== 'A_') fail(`keyboard to next section: got ${await textsOf(0)} / ${await textsOf(1)}`)
+  // Drag B with its bullet C to the end of section 2.
+  const lastRow = await sec(1).locator('.item').last().boundingBox()
+  await dragTo(sec(0).locator('.item .handle button').first(), lastRow.y + lastRow.height + 2)
+  if ((await textsOf(0)) !== '' || (await textsOf(1)) !== 'A_BC') fail(`drag group to other section: got ${await textsOf(0)} / ${await textsOf(1)}`)
+  if ((await sec(1).getByLabel('Item type').nth(3).inputValue()) !== 'bullet') fail('C lost its bullet type when moved between sections')
+  // Drag A into the now empty section 1.
+  const empty = await sec(0).locator('.items').boundingBox()
+  await dragTo(sec(1).locator('.item .handle button').first(), empty.y + empty.height / 2)
+  if ((await textsOf(0)) !== 'A' || (await textsOf(1)) !== '_BC') fail(`drag into empty section: got ${await textsOf(0)} / ${await textsOf(1)}`)
+
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
@@ -121,7 +146,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups, logo upload, print preview, Word export, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, Word export, CSP applied)')
 } finally {
   server.kill()
 }

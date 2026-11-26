@@ -1,73 +1,65 @@
 import { describe, expect, it } from 'vitest'
-import { itemUnits, moveItem, moveUnit, shiftFor, singleUnits, targetIndex, unitOf } from './reorder'
-
-describe('moveItem', () => {
-  it('moves down and up', () => {
-    const a = ['a', 'b', 'c', 'd']
-    moveItem(a, 0, 2)
-    expect(a).toEqual(['b', 'c', 'a', 'd'])
-    moveItem(a, 3, 0)
-    expect(a).toEqual(['d', 'b', 'c', 'a'])
-  })
-  it('ignores out-of-range and no-op moves', () => {
-    const a = [1, 2, 3]
-    expect(moveItem(a, 0, -1)).toBe(false)
-    expect(moveItem(a, 2, 3)).toBe(false)
-    expect(moveItem(a, 1, 1)).toBe(false)
-    expect(a).toEqual([1, 2, 3])
-  })
-})
-
-describe('targetIndex', () => {
-  const mids = [10, 30, 50, 70] // rows 20px tall
-  it('stays put until the centre crosses a neighbour', () => {
-    expect(targetIndex(29, mids, 0)).toBe(0)
-    expect(targetIndex(31, mids, 0)).toBe(1)
-  })
-  it('finds positions further down and up', () => {
-    expect(targetIndex(71, mids, 0)).toBe(3)
-    expect(targetIndex(9, mids, 3)).toBe(0)
-    expect(targetIndex(45, mids, 3)).toBe(2)
-  })
-})
-
-describe('shiftFor', () => {
-  it('opens a gap below when dragging down', () => {
-    // row 0 dragged to 2: rows 1 and 2 move up one step, row 3 stays
-    expect([1, 2, 3].map((i) => shiftFor(i, 0, 2, 20))).toEqual([-20, -20, 0])
-  })
-  it('opens a gap above when dragging up', () => {
-    expect([0, 1, 2].map((i) => shiftFor(i, 3, 1, 20))).toEqual([0, 20, 20])
-  })
-})
+import { itemUnits, moveBlock, nearestIndex, singleUnits, unitOf } from './reorder'
 
 describe('units (items with their bullets)', () => {
   // A, a1, a2 (bullets of A), B, C, c1
-  const levels = [0, 1, 1, 0, 0, 1]
+  const bullets = [0, 1, 1, 0, 0, 1]
   it('groups each item with the bullets below it', () => {
-    expect(itemUnits(levels)).toEqual([[0, 3], [3, 4], [4, 6]])
-    expect(itemUnits([1, 0, 1])).toEqual([[0, 1], [1, 3]]) // leading bullet stands alone
+    expect(itemUnits(bullets)).toEqual([[0, 3], [3, 4], [4, 6]])
+    expect(itemUnits([1, 0, 1])).toEqual([[0, 1], [1, 3]]) // a leading bullet stands alone
+    expect(singleUnits(2)).toEqual([[0, 1], [1, 2]])
   })
   it('finds the unit of a row', () => {
-    const u = itemUnits(levels)
+    const u = itemUnits(bullets)
     expect([0, 2, 3, 5].map((i) => unitOf(u, i))).toEqual([0, 0, 1, 2])
   })
-  it('moves an item down together with its bullets', () => {
-    const a = ['A', 'a1', 'a2', 'B', 'C', 'c1']
-    moveUnit(a, itemUnits(levels), 0, 1)
+})
+
+describe('moveBlock', () => {
+  const list = () => ['A', 'a1', 'a2', 'B', 'C', 'c1']
+  it('moves a group down within a list', () => {
+    const a = list()
+    expect(moveBlock(a, [0, 3], a, 4)).toBe(true) // before C
     expect(a).toEqual(['B', 'A', 'a1', 'a2', 'C', 'c1'])
   })
-  it('moves an item to the end and to the top', () => {
-    const a = ['A', 'a1', 'a2', 'B', 'C', 'c1']
-    moveUnit(a, itemUnits(levels), 0, 2)
+  it('moves a group to the end and to the top', () => {
+    const a = list()
+    moveBlock(a, [0, 3], a, 6)
     expect(a).toEqual(['B', 'C', 'c1', 'A', 'a1', 'a2'])
-    const b = ['A', 'a1', 'a2', 'B', 'C', 'c1']
-    moveUnit(b, itemUnits(levels), 2, 0)
+    const b = list()
+    moveBlock(b, [4, 6], b, 0)
     expect(b).toEqual(['C', 'c1', 'A', 'a1', 'a2', 'B'])
   })
-  it('single units behave like moveItem', () => {
-    const a = ['x', 'y', 'z']
-    moveUnit(a, singleUnits(3), 0, 2)
-    expect(a).toEqual(['y', 'z', 'x'])
+  it('ignores drops onto the block itself', () => {
+    const a = list()
+    expect(moveBlock(a, [0, 3], a, 0)).toBe(false)
+    expect(moveBlock(a, [0, 3], a, 3)).toBe(false)
+    expect(a).toEqual(list())
+  })
+  it('moves a block to another list', () => {
+    const a = list()
+    const b = ['X', 'Y']
+    expect(moveBlock(a, [0, 3], b, 1)).toBe(true)
+    expect(a).toEqual(['B', 'C', 'c1'])
+    expect(b).toEqual(['X', 'A', 'a1', 'a2', 'Y'])
+  })
+  it('moves into an empty list', () => {
+    const a = ['A', 'B']
+    const b: string[] = []
+    moveBlock(a, [1, 2], b, 0)
+    expect([a, b]).toEqual([['A'], ['B']])
+  })
+  it('rejects out-of-range moves', () => {
+    const a = ['A']
+    expect(moveBlock(a, [0, 1], [], 2)).toBe(false)
+    expect(moveBlock(a, [0, 2], [], 0)).toBe(false)
+  })
+})
+
+describe('nearestIndex', () => {
+  it('picks the closest position', () => {
+    expect(nearestIndex(12, [0, 10, 30])).toBe(1)
+    expect(nearestIndex(-5, [0, 10, 30])).toBe(0)
+    expect(nearestIndex(100, [0, 10, 30])).toBe(2)
   })
 })
