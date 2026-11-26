@@ -13,6 +13,10 @@
 - Bump `version` in `package.json` for user-visible changes. Releases are made by
   pushing a `vX.Y.Z` tag after merge (builds the offline zip).
 
+## Node version
+- One Node major everywhere: `.node-version` (read by CI), the Cloudflare `NODE_VERSION`
+  variable, the dev container image and `@types/node`'s major. Change them together.
+
 ## Private material: never commit
 - Customer checklists, Word/PDF documents and company logos must never be
   committed or pushed. Keep them in `private/` (git-ignored) or outside the repo.
