@@ -38,6 +38,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm run check      # type-check
 npm test           # unit tests
+npm run e2e        # build + browser smoke test with production security headers
 npm run build      # static build in dist/
 ```
 

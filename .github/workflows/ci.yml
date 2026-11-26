@@ -16,6 +16,9 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser smoke test with production security headers
+        run: node e2e/smoke.mjs
 
   offline-server:
     # The airgapped package must work on Windows as well as Linux/macOS.

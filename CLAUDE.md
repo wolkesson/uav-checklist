@@ -5,7 +5,9 @@
   (`feat/...`, `fix/...`, `docs/...`) and is merged through a pull request.
 - Each branch gets a Cloudflare preview build. The owner tests the preview URL
   before merging; merging to `main` deploys production.
-- Before opening a PR, run `npm run check`, `npm test` and `npm run build`.
+- Before opening a PR, run `npm run check`, `npm test` and `npm run e2e` (builds, then runs a
+  browser smoke test with the production Content-Security-Policy from `public/_headers`).
+  In Claude cloud sessions set `CHROMIUM_PATH=/opt/pw-browsers/chromium` for `npm run e2e`.
 - Bump `version` in `package.json` for user-visible changes. Releases are made by
   pushing a `vX.Y.Z` tag after merge (builds the offline zip).
 
