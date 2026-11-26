@@ -16,3 +16,29 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+
+  offline-server:
+    # The airgapped package must work on Windows as well as Linux/macOS.
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Serve the build like the offline package does
+        run: |
+          mkdir -p pkg && cp -r dist pkg/app && cp scripts/serve.mjs pkg/
+          node pkg/serve.mjs 8080 &
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8080/ >/dev/null && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:8080/ | grep -q '<title>UAV Checklist</title>'
+          curl -sf -o /dev/null http://127.0.0.1:8080/manifest.webmanifest
+          test "$(curl -s -o /dev/null -w '%{http_code}' --path-as-is 'http://127.0.0.1:8080/..%5c..%5cpackage.json')" != 200
