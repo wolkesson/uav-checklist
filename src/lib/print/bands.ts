@@ -8,7 +8,7 @@ import type { ChecklistItem } from '../model'
 export function bands(items: ChecklistItem[]): boolean[] {
   let n = -1
   return items.map((it) => {
-    if (!it.level) n++
+    if (it.type !== 'bullet') n++
     return n % 2 === 0
   })
 }

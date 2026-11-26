@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { ArrowLeft, CircleAlert, ImageUp, ListIndentIncrease, OctagonX, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
-  import { newItem, newSection, SECTION_STYLES, type Checklist } from '../model'
+  import { ArrowLeft, ImageUp, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
+  import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
   import { plainText } from '../markup'
@@ -36,7 +36,14 @@
    * only between whole groups; a bullet moves on its own.
    */
   function unitsFor(sec: ChecklistSection, i: number): Unit[] {
-    return sec.items[i].level === 1 ? singleUnits(sec.items.length) : itemUnits(sec.items.map((it) => it.level ?? 0))
+    return sec.items[i].type === 'bullet'
+      ? singleUnits(sec.items.length)
+      : itemUnits(sec.items.map((it) => (it.type === 'bullet' ? 1 : 0)))
+  }
+
+  function setType(item: ChecklistItem, t: ItemType) {
+    item.type = t === 'normal' ? undefined : t
+    touch(c)
   }
 
   function moveItemUnit(sec: ChecklistSection, units: Unit[], from: number, to: number) {
@@ -93,6 +100,8 @@
   </div>
   {#if logoError}<p class="error" role="alert">{logoError}</p>{/if}
   <p class="muted small">Formatting in any text: <code>*italic*</code>, <code>**bold**</code>, <code>^superscript^</code>.</p>
+  <p class="muted small">Item type: <strong>Bullet</strong> is indented under the item above and moves with it;
+    <strong>Critical</strong> must never be skipped; <strong>Abort</strong> is a highlighted row when printed.</p>
 </div>
 
 {#each c.sections as s, si (s.id)}
@@ -109,23 +118,19 @@
     {#each s.items as item, ii (item.id)}
       {@const units = unitsFor(s, ii)}
       {@const u = unitOf(units, ii)}
-      <div class="item" data-sortable-item class:bullet={item.level === 1}>
+      <div class="item type-{itemType(item)}" data-sortable-item>
         <div class="handle">
           <DragHandle index={u} count={units.length} units={units}
             label={units[u][1] - units[u][0] > 1 ? 'item with its bullets' : 'item'}
             onmove={(f, t) => moveItemUnit(s, units, f, t)} />
         </div>
-        <div class="indent">
-          <IconButton icon={ListIndentIncrease} label="Bullet under the item above" pressed={item.level === 1}
-            onclick={() => { item.level = item.level === 1 ? 0 : 1; touch(c) }} />
-        </div>
         <input class="text" bind:value={item.text} placeholder="Item to check" aria-label="Item to check" />
         <input class="expected" bind:value={item.expected} placeholder="Expected" aria-label="Expected response" />
+        <select class="type" aria-label="Item type" value={itemType(item)}
+          onchange={(e) => setType(item, e.currentTarget.value as ItemType)}>
+          {#each ITEM_TYPES as t (t.value)}<option value={t.value}>{t.label}</option>{/each}
+        </select>
         <div class="row-actions">
-          <IconButton icon={CircleAlert} label="Critical item (never skip)" tipAlign="end" pressed={!!item.critical}
-            onclick={() => { item.critical = !item.critical; touch(c) }} />
-          <IconButton icon={OctagonX} label="Abort row (highlighted when printed)" tipAlign="end" pressed={item.highlight === 'abort'}
-            onclick={() => { item.highlight = item.highlight === 'abort' ? undefined : 'abort'; touch(c) }} />
           <IconButton icon={Trash2} label="Delete item" variant="danger" tipAlign="end" onclick={() => { s.items.splice(ii, 1); touch(c) }} />
         </div>
       </div>
@@ -161,28 +166,34 @@
   /* Item row: one line on wide screens, two lines on phones. */
   .item {
     display: grid; gap: 6px; align-items: center;
-    grid-template-columns: 40px 40px minmax(0, 1fr) minmax(110px, 180px) auto;
-    grid-template-areas: 'handle indent text expected actions';
+    grid-template-columns: 40px minmax(0, 1fr) minmax(110px, 180px) 112px 40px;
+    grid-template-areas: 'handle text expected type actions';
     background: var(--card); border-radius: 6px;
   }
   .handle { grid-area: handle; }
-  .indent { grid-area: indent; }
+  .item .type { grid-area: type; }
   .item .text { grid-area: text; }
   .item .expected { grid-area: expected; }
   .item .row-actions { grid-area: actions; }
-  .item.bullet .text { margin-left: 20px; width: calc(100% - 20px); }
+  .item.type-bullet .text { margin-left: 24px; width: calc(100% - 24px); }
+  /* The type is also visible at a glance: coloured border on the dropdown. */
+  .item.type-critical .type { border-color: var(--crit); color: var(--crit); font-weight: 600; }
+  .item.type-abort .type { border-color: var(--abort); color: var(--abort); font-weight: 600; }
+  .item.type-bullet .type { border-color: var(--accent); color: var(--accent); }
   .item + .item { padding-top: 6px; border-top: 1px dashed var(--border); }
 
   @media (max-width: 700px) {
     .item {
-      grid-template-columns: 40px 40px minmax(0, 1fr) auto;
-      grid-template-areas: 'handle indent text text' '. . expected actions';
+      grid-template-columns: 40px minmax(0, 1fr) 112px 40px;
+      grid-template-areas: 'handle text text text' '. expected type actions';
     }
     .section-head { grid-template-columns: 40px minmax(0, 1fr) 40px; }
     .section-head select { grid-column: 2; }
   }
   @media (max-width: 440px) {
-    .item { grid-template-areas: 'handle indent text text' '. . expected expected' '. . actions actions'; }
-    .item .row-actions { justify-content: flex-end; }
+    .item {
+      grid-template-columns: 40px minmax(0, 1fr) 40px;
+      grid-template-areas: 'handle text text' '. expected expected' '. type actions';
+    }
   }
 </style>

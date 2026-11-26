@@ -57,11 +57,12 @@ try {
   await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
   await page.locator('.logo-row img').waitFor({ timeout: 5000 }).catch(() => fail('logo upload did not show the logo'))
 
-  // Editor: icon toggles report their state; critical toggles on and off.
-  const critical = page.getByRole('button', { name: 'Critical item (never skip)' }).first()
-  if ((await critical.getAttribute('aria-pressed')) !== 'false') fail('critical toggle should start off')
-  await critical.click()
-  if ((await critical.getAttribute('aria-pressed')) !== 'true') fail('critical toggle did not turn on')
+  // Editor: an item is exactly one type, chosen in a dropdown.
+  const firstType = page.getByLabel('Item type').first()
+  if ((await firstType.inputValue()) !== 'normal') fail('new item should be Normal')
+  await firstType.selectOption('critical')
+  if ((await firstType.inputValue()) !== 'critical') fail('item type did not change to Critical')
+  await firstType.selectOption('normal')
   for (const name of ['Back to checklists', 'Run checklist', 'Add item', 'Add section', 'Delete item', 'Delete section']) {
     if (!(await page.getByRole('button', { name, exact: true }).count())) fail(`editor button "${name}" missing`)
   }
@@ -94,11 +95,11 @@ try {
   if ((await order()) !== 'BCA') fail(`menu reorder: expected BCA, got ${await order()}`)
 
   // Bullets move with their parent: make C a bullet under B, then move B down past A.
-  await page.getByRole('button', { name: 'Bullet under the item above' }).nth(1).click()
+  await page.getByLabel('Item type').nth(1).selectOption('bullet')
   await handles.nth(0).focus()
   await page.keyboard.press('ArrowDown')
   if ((await order()) !== 'ABC') fail(`group move: expected ABC (B kept its bullet C), got ${await order()}`)
-  if ((await page.getByRole('button', { name: 'Bullet under the item above' }).nth(2).getAttribute('aria-pressed')) !== 'true') fail('C is no longer a bullet after the group move')
+  if ((await page.getByLabel('Item type').nth(2).inputValue()) !== 'bullet') fail('C is no longer a bullet after the group move')
   // Dragging A to the bottom lands after the whole B group, never between B and its bullet.
   const a = await handles.nth(0).boundingBox()
   const last = await handles.nth(2).boundingBox()
@@ -120,7 +121,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, reorder by drag/keyboard/menu with bullet groups, logo upload, print preview, Word export, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups, logo upload, print preview, Word export, CSP applied)')
 } finally {
   server.kill()
 }
