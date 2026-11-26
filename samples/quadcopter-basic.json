@@ -1,0 +1,139 @@
+{
+  "kind": "uav-checklist",
+  "schemaVersion": 1,
+  "exportedAt": "2026-11-26T00:00:00Z",
+  "checklists": [
+    {
+      "id": "sample-quadcopter-basic",
+      "title": "Basic quadcopter flight (example)",
+      "aircraft": "Generic multirotor",
+      "description": "Example only. Replace with your aircraft manufacturer's procedures and your local regulations.",
+      "revision": 1,
+      "updatedAt": "2026-11-26T00:00:00Z",
+      "sections": [
+        {
+          "id": "ce5f0d4e-88a4-4cbc-a014-7b4ffc12930e",
+          "title": "Planning",
+          "items": [
+            {
+              "id": "8a491c00-d756-4257-b960-6706003df273",
+              "kind": "check",
+              "text": "Airspace / restrictions checked",
+              "expected": "CHECKED",
+              "critical": true
+            },
+            {
+              "id": "4089ad3b-1cc6-49b2-8ce6-09c2bf817118",
+              "kind": "check",
+              "text": "Weather and wind within limits",
+              "expected": "CHECKED",
+              "critical": true
+            },
+            {
+              "id": "36ee257c-ccb6-43ed-8487-f6570739aa54",
+              "kind": "check",
+              "text": "Flight authorisation / registration valid",
+              "expected": "VALID"
+            }
+          ]
+        },
+        {
+          "id": "d700d154-65e9-43a4-81ed-3c2ff2b6c04f",
+          "title": "Pre-flight",
+          "items": [
+            {
+              "id": "73bd9545-7e7a-432a-aaa3-df86e1ba94a4",
+              "kind": "check",
+              "text": "Airframe and arms undamaged",
+              "expected": "CHECKED"
+            },
+            {
+              "id": "66c6a670-2d0a-42f9-898b-a3b4429b66c4",
+              "kind": "check",
+              "text": "Propellers secure, no damage",
+              "expected": "CHECKED",
+              "critical": true
+            },
+            {
+              "id": "2451a3b1-a51b-4b34-9c06-494529a318e8",
+              "kind": "check",
+              "text": "Flight battery charged",
+              "expected": "> 90 %",
+              "critical": true
+            },
+            {
+              "id": "7974d5a9-01b6-429d-9eca-ce7dceca651d",
+              "kind": "check",
+              "text": "Controller battery charged",
+              "expected": "> 50 %"
+            },
+            {
+              "id": "f1e77755-2d2b-4920-820b-c8b0f73fdec4",
+              "kind": "check",
+              "text": "Camera / payload secured",
+              "expected": "CHECKED"
+            }
+          ]
+        },
+        {
+          "id": "6c9cab13-2924-42cd-8c4d-575b7ea236f2",
+          "title": "Before takeoff",
+          "items": [
+            {
+              "id": "d77042e3-1a29-40a4-872a-e9d857ddf505",
+              "kind": "check",
+              "text": "Takeoff area clear",
+              "expected": "CLEAR",
+              "critical": true
+            },
+            {
+              "id": "1c00bd4b-9ce1-4b64-a8dd-a6e9bb10aec1",
+              "kind": "check",
+              "text": "GNSS lock / home point set",
+              "expected": "SET",
+              "critical": true
+            },
+            {
+              "id": "e93705d9-01bc-408c-a3a6-f5b483b56a82",
+              "kind": "check",
+              "text": "Return-to-home altitude",
+              "expected": "SET",
+              "critical": true
+            },
+            {
+              "id": "cbbc3a10-a838-49f1-a59d-dea635846734",
+              "kind": "check",
+              "text": "Compass / IMU status",
+              "expected": "OK"
+            }
+          ]
+        },
+        {
+          "id": "c68fe798-9e41-4d44-be13-4cb6a8fd37f2",
+          "title": "Post-flight",
+          "items": [
+            {
+              "id": "74659b19-9436-4738-9000-fe5f997cf76d",
+              "kind": "check",
+              "text": "Motors disarmed",
+              "expected": "DISARMED",
+              "critical": true
+            },
+            {
+              "id": "b9e061ee-c6c8-42e2-94cd-dcf19379b4c9",
+              "kind": "check",
+              "text": "Battery removed",
+              "expected": "REMOVED"
+            },
+            {
+              "id": "7a1467b3-0799-4e68-8372-0a3ec39da74e",
+              "kind": "check",
+              "text": "Flight logged",
+              "expected": "LOGGED"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
