@@ -36,14 +36,16 @@ npm test           # unit tests
 npm run build      # static build in dist/
 ```
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare (Workers static assets)
 
-Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → pick this repo:
+`wrangler.jsonc` tells Cloudflare to serve the static build in `dist/`; there is no server code.
+In the dashboard, Workers & Pages → Create → Import a repository → pick this repo:
 
-- Framework preset: none · Build command: `npm run build` · Output directory: `dist`
-- Environment variable: `NODE_VERSION=22`
+- Build command: `npm run build` · Deploy command: `npx wrangler deploy` · Preview command: `npx wrangler preview`
+- Environment variable: `NODE_VERSION=24`
+- The Worker name must match `name` in `wrangler.jsonc` (`uav-checklist`)
 
-Every push to `main` deploys; every pull request gets a preview URL.
+Every push to `main` deploys; other branches and pull requests get preview URLs.
 
 ## Airgapped / offline package
 

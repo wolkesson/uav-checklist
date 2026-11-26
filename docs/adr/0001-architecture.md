@@ -17,7 +17,7 @@ free web app and later run as a standalone app in an airgapped environment.
 | 4 | **Checklists are versioned JSON** (`schemaVersion`, `kind: "uav-checklist"`) with `migrate()`. | Import/export files are the sharing and backup mechanism, and the way data crosses the air gap. Old files must keep loading. |
 | 5 | **PWA with a service worker** (vite-plugin-pwa). | Installed copies keep working with no signal in the field. |
 | 6 | **Relative asset paths** (`base: './'`), no CDNs, no external fonts, no telemetry. | Same build works at any URL or sub-folder, and never needs the internet. A strict CSP in `public/_headers` enforces this on the web. |
-| 7 | **Hosting: Cloudflare Pages** via its GitHub integration. | Free, fast CDN, preview deploy per pull request. |
+| 7 | **Hosting: Cloudflare Workers static assets** (`wrangler.jsonc`) via its GitHub integration. | Free, fast CDN, preview deploy per pull request. Cloudflare's recommended successor to Pages; still static files only. |
 | 8 | **Airgapped delivery: a zip** of the build plus a zero-dependency local server (`serve.mjs`, or Python's `http.server`), attached to each GitHub release. | Browsers won't run module scripts from `file://`; a tiny local server is the simplest fix. A desktop wrapper (Tauri) can be added later without changing the app. |
 | 9 | **Public repo, MIT licence.** | |
 
