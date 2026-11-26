@@ -9,7 +9,7 @@
       "problemMatcher": {
         "owner": "vite",
         "pattern": { "regexp": "^x^" },
-        "background": { "activatesPattern": "VITE", "beginsPattern": "VITE", "endsPattern": "Local:" }
+        "background": { "activatesPattern": "VITE", "beginsPattern": "VITE", "endsPattern": "Local" }
       }
     },
     { "label": "check", "type": "npm", "script": "check", "group": "build", "problemMatcher": [] },
