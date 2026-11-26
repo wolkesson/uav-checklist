@@ -66,6 +66,33 @@ try {
     if (!(await page.getByRole('button', { name, exact: true }).count())) fail(`editor button "${name}" missing`)
   }
 
+  // Reordering items: drag, keyboard and the tap menu (no arrows any more).
+  const texts = page.locator('.item .text')
+  await texts.first().fill('A')
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await texts.nth(1).fill('B')
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await texts.nth(2).fill('C')
+  const order = async () => (await texts.evaluateAll((els) => els.map((e) => e.value))).join('')
+  if (await page.getByRole('button', { name: /^Move item (up|down)$/ }).count()) fail('item arrow buttons should be gone')
+  const handles = page.locator('.item .handle button')
+
+  await handles.nth(0).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await order()) !== 'BAC') fail(`keyboard reorder: expected BAC, got ${await order()}`)
+
+  const from = await handles.nth(2).boundingBox() // drag C to the top
+  const to = await handles.nth(0).boundingBox()
+  await page.mouse.move(from.x + 20, from.y + 20)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(from.x + 20, from.y + 20 + ((to.y - 15 - from.y) * i) / 10)
+  await page.mouse.up()
+  if ((await order()) !== 'CBA') fail(`drag reorder: expected CBA, got ${await order()}`)
+
+  await handles.nth(0).click() // tap without dragging opens the move menu
+  await page.getByRole('button', { name: 'Move down', exact: true }).click()
+  if ((await order()) !== 'BCA') fail(`menu reorder: expected BCA, got ${await order()}`)
+
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
@@ -78,7 +105,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, logo upload, print preview, Word export, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, reorder by drag/keyboard/menu, logo upload, print preview, Word export, CSP applied)')
 } finally {
   server.kill()
 }

@@ -27,6 +27,14 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Small, easily redone edits (deleting one item while editing) need no confirmation.
 - Use `ConfirmDialog.svelte`. Never use the browser's `alert()`, `confirm()` or `prompt()`.
 
+## Reordering
+- Lists are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
+- Dragging must never be the only way (WCAG 2.2, 2.5.7). Every handle also supports:
+  - **keyboard:** focus the handle and press Arrow Up / Arrow Down; the new position is announced;
+  - **single tap or click** without dragging: a small menu with "Move up" / "Move down".
+- While dragging, the row lifts (shadow) and the other rows move aside to show where it lands;
+  the page scrolls when the pointer is near the top or bottom edge.
+
 ## Touch, contrast and readability
 - Touch targets at least **40 × 40 px** (WCAG 2.2 requires 24 px; 40 px+ suits gloves).
 - Contrast at least 4.5:1 for text and 3:1 for icons, borders and focus rings, in both
@@ -46,7 +54,7 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Print / PDF / Word | `Printer` |
   | Export file | `Share` |
   | Delete | `Trash2` |
-  | Move up / down | `ArrowUp` / `ArrowDown` |
+  | Reorder (drag handle) | `GripVertical` |
   | Add item / section | `Plus` (with text) |
   | Bullet under item above (toggle) | `ListIndentIncrease` |
   | Critical item (toggle) | `CircleAlert` |

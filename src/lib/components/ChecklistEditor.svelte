@@ -1,13 +1,13 @@
 <script lang="ts">
-  import {
-    ArrowLeft, ArrowDown, ArrowUp, CircleAlert, ImageUp, ListIndentIncrease, OctagonX, Play, Plus, Printer, Trash2,
-  } from '@lucide/svelte'
+  import { ArrowLeft, CircleAlert, ImageUp, ListIndentIncrease, OctagonX, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
   import { newItem, newSection, SECTION_STYLES, type Checklist } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
   import { plainText } from '../markup'
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
+  import DragHandle from './DragHandle.svelte'
+  import { moveItem } from '../reorder'
 
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
@@ -26,11 +26,8 @@
     }
   }
 
-  function move<T>(arr: T[], i: number, d: number) {
-    const j = i + d
-    if (j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    touch(c)
+  function move<T>(arr: T[], from: number, to: number) {
+    if (moveItem(arr, from, to)) touch(c)
   }
 
   function newRevision() {
@@ -86,21 +83,21 @@
 </div>
 
 {#each c.sections as s, si (s.id)}
-  <section class="section" aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
+  <section class="section" data-sortable-item aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
     <div class="section-head">
+      <DragHandle index={si} count={c.sections.length} label="section" onmove={(f, t) => move(c.sections, f, t)} />
       <input class="section-title" bind:value={s.title} aria-label="Section title" />
       <select bind:value={s.style} aria-label="Box style when printed">
         {#each SECTION_STYLES as st (st.value)}<option value={st.value}>{st.label}</option>{/each}
       </select>
-      <div class="row-actions">
-        <IconButton icon={ArrowUp} label="Move section up" onclick={() => move(c.sections, si, -1)} />
-        <IconButton icon={ArrowDown} label="Move section down" onclick={() => move(c.sections, si, 1)} />
-        <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
-      </div>
+      <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
     </div>
 
     {#each s.items as item, ii (item.id)}
-      <div class="item" class:bullet={item.level === 1}>
+      <div class="item" data-sortable-item class:bullet={item.level === 1}>
+        <div class="handle">
+          <DragHandle index={ii} count={s.items.length} label="item" onmove={(f, t) => move(s.items, f, t)} />
+        </div>
         <div class="indent">
           <IconButton icon={ListIndentIncrease} label="Bullet under the item above" pressed={item.level === 1}
             onclick={() => { item.level = item.level === 1 ? 0 : 1; touch(c) }} />
@@ -108,12 +105,10 @@
         <input class="text" bind:value={item.text} placeholder="Item to check" aria-label="Item to check" />
         <input class="expected" bind:value={item.expected} placeholder="Expected" aria-label="Expected response" />
         <div class="row-actions">
-          <IconButton icon={CircleAlert} label="Critical item (never skip)" pressed={!!item.critical}
+          <IconButton icon={CircleAlert} label="Critical item (never skip)" tipAlign="end" pressed={!!item.critical}
             onclick={() => { item.critical = !item.critical; touch(c) }} />
-          <IconButton icon={OctagonX} label="Abort row (highlighted when printed)" pressed={item.highlight === 'abort'}
+          <IconButton icon={OctagonX} label="Abort row (highlighted when printed)" tipAlign="end" pressed={item.highlight === 'abort'}
             onclick={() => { item.highlight = item.highlight === 'abort' ? undefined : 'abort'; touch(c) }} />
-          <IconButton icon={ArrowUp} label="Move item up" onclick={() => move(s.items, ii, -1)} />
-          <IconButton icon={ArrowDown} label="Move item down" onclick={() => move(s.items, ii, 1)} />
           <IconButton icon={Trash2} label="Delete item" variant="danger" tipAlign="end" onclick={() => { s.items.splice(ii, 1); touch(c) }} />
         </div>
       </div>
@@ -142,16 +137,18 @@
   code { font-size: .85em; }
 
   .section { display: grid; gap: 8px; }
-  .section-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }
+  .section-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 40px; gap: 6px; align-items: center; }
   .section-title { font-weight: 600; }
   .row-actions { display: flex; gap: 4px; }
 
   /* Item row: one line on wide screens, two lines on phones. */
   .item {
     display: grid; gap: 6px; align-items: center;
-    grid-template-columns: 40px minmax(0, 1fr) minmax(110px, 180px) auto;
-    grid-template-areas: 'indent text expected actions';
+    grid-template-columns: 40px 40px minmax(0, 1fr) minmax(110px, 180px) auto;
+    grid-template-areas: 'handle indent text expected actions';
+    background: var(--card); border-radius: 6px;
   }
+  .handle { grid-area: handle; }
   .indent { grid-area: indent; }
   .item .text { grid-area: text; }
   .item .expected { grid-area: expected; }
@@ -161,14 +158,14 @@
 
   @media (max-width: 700px) {
     .item {
-      grid-template-columns: 40px minmax(0, 1fr) auto;
-      grid-template-areas: 'indent text text' '. expected actions';
+      grid-template-columns: 40px 40px minmax(0, 1fr) auto;
+      grid-template-areas: 'handle indent text text' '. . expected actions';
     }
-    .section-head { grid-template-columns: minmax(0, 1fr) auto; }
-    .section-head .row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .section-head { grid-template-columns: 40px minmax(0, 1fr) 40px; }
+    .section-head select { grid-column: 2; }
   }
   @media (max-width: 440px) {
-    .item { grid-template-areas: 'indent text text' '. expected expected' '. actions actions'; }
+    .item { grid-template-areas: 'handle indent text text' '. . expected expected' '. . actions actions'; }
     .item .row-actions { justify-content: flex-end; }
   }
 </style>
