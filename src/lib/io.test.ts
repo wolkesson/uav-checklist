@@ -28,3 +28,26 @@ describe('schema migration', () => {
     expect(parseFile(JSON.stringify(v1))[0].title).toBe('Old')
   })
 })
+
+describe('schema v2 -> v3 (item type)', () => {
+  const v2 = (items: object[]) => JSON.stringify({ kind: 'uav-checklist', schemaVersion: 2, exportedAt: '', checklists: [
+    { id: 'a', title: 'T', revision: 1, updatedAt: '', sections: [{ id: 's', title: 'S', items }] },
+  ] })
+  it('turns level/critical/highlight into one type', () => {
+    const [c] = parseFile(v2([
+      { id: '1', kind: 'check', text: 'normal' },
+      { id: '2', kind: 'check', text: 'bullet', level: 1 },
+      { id: '3', kind: 'check', text: 'critical', critical: true },
+      { id: '4', kind: 'check', text: 'abort', highlight: 'abort' },
+    ]))
+    expect(c.sections[0].items.map((i) => i.type)).toEqual([undefined, 'bullet', 'critical', 'abort'])
+    expect(c.sections[0].items[1]).not.toHaveProperty('level')
+  })
+  it('keeps one type when old data had several: abort, then critical, then bullet', () => {
+    const [c] = parseFile(v2([
+      { id: '1', kind: 'check', text: 'x', level: 1, critical: true, highlight: 'abort' },
+      { id: '2', kind: 'check', text: 'y', level: 1, critical: true },
+    ]))
+    expect(c.sections[0].items.map((i) => i.type)).toEqual(['abort', 'critical'])
+  })
+})

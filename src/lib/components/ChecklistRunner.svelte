@@ -8,7 +8,7 @@
   let done = $state<Record<string, boolean>>({})
   const all = $derived(c.sections.flatMap((s) => s.items))
   const count = $derived(all.filter((i) => done[i.id]).length)
-  const criticalOpen = $derived(all.filter((i) => i.critical && !done[i.id]).length)
+  const criticalOpen = $derived(all.filter((i) => i.type === 'critical' && !done[i.id]).length)
 </script>
 
 <div class="toolbar">
@@ -24,7 +24,7 @@
   <h2 class="sec-{s.style ?? 'normal'}"><Markup text={s.title} /></h2>
   <ul class="run">
     {#each s.items as item (item.id)}
-      <li class:done={done[item.id]} class:critical={item.critical} class:bullet={item.level === 1} class:abort={item.highlight === 'abort'}>
+      <li class:done={done[item.id]} class:critical={item.type === 'critical'} class:bullet={item.type === 'bullet'} class:abort={item.type === 'abort'}>
         <label>
           <input type="checkbox" bind:checked={done[item.id]} />
           <span class="text"><Markup text={item.text} /></span>

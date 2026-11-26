@@ -63,10 +63,10 @@ function sectionTable(s: ChecklistSection, widthMm: number): Table {
   const keepWhole = s.style === 'emergency' || s.items.length <= 8
   const last = s.items.length - 1
   const rows = s.items.map((it, i) => {
-    const abort = it.highlight === 'abort'
+    const abort = it.type === 'abort'
     const fill = abort ? 'E04403' : shade[i] ? 'F2F2F2' : undefined
     const color = abort ? 'FFFFFF' : undefined
-    const bullet = it.level === 1
+    const bullet = it.type === 'bullet'
     const tabStops = [
       ...(bullet ? [{ type: TabStopType.LEFT, position: mm(6) }] : []),
       { type: TabStopType.RIGHT, position: right },

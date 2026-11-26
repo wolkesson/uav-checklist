@@ -2,7 +2,7 @@
  * Checklist data model. This is the contract for storage and for import/export
  * files, so changes must bump SCHEMA_VERSION and add a migration in migrate().
  */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 export const FILE_KIND = 'uav-checklist'
 
 export type ItemKind = 'check' | 'note' | 'value'
@@ -14,13 +14,24 @@ export interface ChecklistItem {
   text: string
   /** Expected answer, e.g. "CHECKED" or "> 80 %". */
   expected?: string
-  /** Marks items that must never be skipped. */
-  critical?: boolean
-  /** 1 = indented bullet under the previous item. */
-  level?: 0 | 1
-  /** Highlighted row, e.g. "ON ABORT ... LAND". */
-  highlight?: 'abort'
+  /**
+   * What kind of row this is; an item is exactly one of these. Absent = normal.
+   * - bullet: indented under the item above (moves with it)
+   * - critical: must never be skipped
+   * - abort: highlighted row, e.g. "ON ABORT ... LAND"
+   */
+  type?: 'bullet' | 'critical' | 'abort'
 }
+
+export type ItemType = NonNullable<ChecklistItem['type']> | 'normal'
+export const ITEM_TYPES: { value: ItemType; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'bullet', label: 'Bullet' },
+  { value: 'critical', label: 'Critical' },
+  { value: 'abort', label: 'Abort' },
+]
+export const itemType = (i: ChecklistItem): ItemType => i.type ?? 'normal'
+export const isBullet = (i: ChecklistItem) => i.type === 'bullet'
 
 /** Box style used when printing: black, blue (info / first flight) or red (emergency). */
 export type SectionStyle = 'normal' | 'info' | 'emergency'
@@ -116,8 +127,25 @@ export function migrate(data: { schemaVersion: number; checklists: unknown[] }):
   if (data.schemaVersion > SCHEMA_VERSION) {
     throw new Error(`File is from a newer app version (schema ${data.schemaVersion}). Update the app.`)
   }
-  // v1 -> v2 only added optional fields (style, level, highlight, revisionDate,
+  // v1 -> v2 only added optional fields (style, level, critical, highlight, revisionDate,
   // effectivity, logo, print), so v1 data is already valid v2 data.
+  if (data.schemaVersion < 3) data.checklists.forEach(itemFlagsToType)
   data.checklists.forEach(assertChecklist)
   return data.checklists as Checklist[]
+}
+
+/**
+ * v2 -> v3: the separate flags `level`, `critical` and `highlight` become one `type`.
+ * An item can only be one kind; if old data had several, abort wins, then critical, then bullet.
+ */
+function itemFlagsToType(checklist: unknown) {
+  for (const section of (checklist as { sections?: { items?: Record<string, unknown>[] }[] }).sections ?? []) {
+    for (const item of section.items ?? []) {
+      const type = item.highlight === 'abort' ? 'abort' : item.critical ? 'critical' : item.level === 1 ? 'bullet' : undefined
+      delete item.highlight
+      delete item.critical
+      delete item.level
+      if (type) item.type = type
+    }
+  }
 }

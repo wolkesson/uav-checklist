@@ -1,13 +1,13 @@
 <script lang="ts">
-  import {
-    ArrowLeft, ArrowDown, ArrowUp, CircleAlert, ImageUp, ListIndentIncrease, OctagonX, Play, Plus, Printer, Trash2,
-  } from '@lucide/svelte'
-  import { newItem, newSection, SECTION_STYLES, type Checklist } from '../model'
+  import { ArrowLeft, ImageUp, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
+  import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
   import { plainText } from '../markup'
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
+  import DragHandle, { type MoveFrom, type MoveTo } from './DragHandle.svelte'
+  import { moveBlock } from '../reorder'
 
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
@@ -26,12 +26,22 @@
     }
   }
 
-  function move<T>(arr: T[], i: number, d: number) {
-    const j = i + d
-    if (j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  function moveSection(from: MoveFrom, to: MoveTo) {
+    if (moveBlock(c.sections, [from.start, from.end], c.sections, to.at)) touch(c)
+  }
+
+  /** Moves items (an item with its bullets, or one bullet) within or between sections. */
+  function moveItems(from: MoveFrom, to: MoveTo) {
+    const src = c.sections.find((x) => x.id === from.list)
+    const dst = c.sections.find((x) => x.id === to.list)
+    if (src && dst && moveBlock(src.items, [from.start, from.end], dst.items, to.at)) touch(c)
+  }
+
+  function setType(item: ChecklistItem, t: ItemType) {
+    item.type = t === 'normal' ? undefined : t
     touch(c)
   }
+
 
   function newRevision() {
     c.revision++
@@ -83,44 +93,47 @@
   </div>
   {#if logoError}<p class="error" role="alert">{logoError}</p>{/if}
   <p class="muted small">Formatting in any text: <code>*italic*</code>, <code>**bold**</code>, <code>^superscript^</code>.</p>
+  <p class="muted small">Item type: <strong>Bullet</strong> is indented under the item above and moves with it;
+    <strong>Critical</strong> must never be skipped; <strong>Abort</strong> is a highlighted row when printed.</p>
 </div>
 
+<div class="sections" data-sortable-list data-group="sections" data-list-id="sections" data-list-label="the checklist">
 {#each c.sections as s, si (s.id)}
-  <section class="section" aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
+  <section class="section" data-sortable-item data-flip-key={s.id} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
     <div class="section-head">
+      <DragHandle id={s.id} group="sections" label="section" onmove={moveSection} />
       <input class="section-title" bind:value={s.title} aria-label="Section title" />
       <select bind:value={s.style} aria-label="Box style when printed">
         {#each SECTION_STYLES as st (st.value)}<option value={st.value}>{st.label}</option>{/each}
       </select>
-      <div class="row-actions">
-        <IconButton icon={ArrowUp} label="Move section up" onclick={() => move(c.sections, si, -1)} />
-        <IconButton icon={ArrowDown} label="Move section down" onclick={() => move(c.sections, si, 1)} />
-        <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
-      </div>
+      <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
     </div>
 
+    <div class="items" data-sortable-list data-group="items" data-list-id={s.id} data-list-label={`section ${plainText(s.title)}`}>
     {#each s.items as item, ii (item.id)}
-      <div class="item" class:bullet={item.level === 1}>
-        <div class="indent">
-          <IconButton icon={ListIndentIncrease} label="Bullet under the item above" pressed={item.level === 1}
-            onclick={() => { item.level = item.level === 1 ? 0 : 1; touch(c) }} />
+      <div class="item type-{itemType(item)}" data-sortable-item data-bullet={item.type === 'bullet' || undefined}
+        data-flip-key={item.id}>
+        <div class="handle">
+          <DragHandle id={item.id} group="items" groupBullets={item.type !== 'bullet'}
+            label={item.type !== 'bullet' && s.items[ii + 1]?.type === 'bullet' ? 'item with its bullets' : 'item'}
+            onmove={moveItems} />
         </div>
         <input class="text" bind:value={item.text} placeholder="Item to check" aria-label="Item to check" />
         <input class="expected" bind:value={item.expected} placeholder="Expected" aria-label="Expected response" />
+        <select class="type" aria-label="Item type" value={itemType(item)}
+          onchange={(e) => setType(item, e.currentTarget.value as ItemType)}>
+          {#each ITEM_TYPES as t (t.value)}<option value={t.value}>{t.label}</option>{/each}
+        </select>
         <div class="row-actions">
-          <IconButton icon={CircleAlert} label="Critical item (never skip)" pressed={!!item.critical}
-            onclick={() => { item.critical = !item.critical; touch(c) }} />
-          <IconButton icon={OctagonX} label="Abort row (highlighted when printed)" pressed={item.highlight === 'abort'}
-            onclick={() => { item.highlight = item.highlight === 'abort' ? undefined : 'abort'; touch(c) }} />
-          <IconButton icon={ArrowUp} label="Move item up" onclick={() => move(s.items, ii, -1)} />
-          <IconButton icon={ArrowDown} label="Move item down" onclick={() => move(s.items, ii, 1)} />
           <IconButton icon={Trash2} label="Delete item" variant="danger" tipAlign="end" onclick={() => { s.items.splice(ii, 1); touch(c) }} />
         </div>
       </div>
     {/each}
+    </div>
     <button class="icon-text" onclick={() => { s.items.push(newItem()); touch(c) }}><Plus size={20} aria-hidden="true" />Add item</button>
   </section>
 {/each}
+</div>
 <button class="icon-text" onclick={() => { c.sections.push(newSection()); touch(c) }}><Plus size={20} aria-hidden="true" />Add section</button>
 
 <ConfirmDialog
@@ -141,34 +154,45 @@
   select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
   code { font-size: .85em; }
 
-  .section { display: grid; gap: 8px; }
-  .section-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }
+  .sections { display: grid; gap: 12px; margin-bottom: 12px; }
+  .section { display: grid; gap: 8px; margin: 0; }
+  /* An empty section still has room to drop items into. */
+  .items { display: grid; gap: 6px; min-height: 12px; }
+  .section-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 40px; gap: 6px; align-items: center; }
   .section-title { font-weight: 600; }
   .row-actions { display: flex; gap: 4px; }
 
   /* Item row: one line on wide screens, two lines on phones. */
   .item {
     display: grid; gap: 6px; align-items: center;
-    grid-template-columns: 40px minmax(0, 1fr) minmax(110px, 180px) auto;
-    grid-template-areas: 'indent text expected actions';
+    grid-template-columns: 40px minmax(0, 1fr) minmax(110px, 180px) 112px 40px;
+    grid-template-areas: 'handle text expected type actions';
+    background: var(--card); border-radius: 6px;
   }
-  .indent { grid-area: indent; }
+  .handle { grid-area: handle; }
+  .item .type { grid-area: type; }
   .item .text { grid-area: text; }
   .item .expected { grid-area: expected; }
   .item .row-actions { grid-area: actions; }
-  .item.bullet .text { margin-left: 20px; width: calc(100% - 20px); }
+  .item.type-bullet .text { margin-left: 24px; width: calc(100% - 24px); }
+  /* The type is also visible at a glance: coloured border on the dropdown. */
+  .item.type-critical .type { border-color: var(--crit); color: var(--crit); font-weight: 600; }
+  .item.type-abort .type { border-color: var(--abort); color: var(--abort); font-weight: 600; }
+  .item.type-bullet .type { border-color: var(--accent); color: var(--accent); }
   .item + .item { padding-top: 6px; border-top: 1px dashed var(--border); }
 
   @media (max-width: 700px) {
     .item {
-      grid-template-columns: 40px minmax(0, 1fr) auto;
-      grid-template-areas: 'indent text text' '. expected actions';
+      grid-template-columns: 40px minmax(0, 1fr) 112px 40px;
+      grid-template-areas: 'handle text text text' '. expected type actions';
     }
-    .section-head { grid-template-columns: minmax(0, 1fr) auto; }
-    .section-head .row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .section-head { grid-template-columns: 40px minmax(0, 1fr) 40px; }
+    .section-head select { grid-column: 2; }
   }
   @media (max-width: 440px) {
-    .item { grid-template-areas: 'indent text text' '. expected expected' '. actions actions'; }
-    .item .row-actions { justify-content: flex-end; }
+    .item {
+      grid-template-columns: 40px minmax(0, 1fr) 40px;
+      grid-template-areas: 'handle text text' '. expected expected' '. type actions';
+    }
   }
 </style>

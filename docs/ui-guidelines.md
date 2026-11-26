@@ -27,6 +27,22 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Small, easily redone edits (deleting one item while editing) need no confirmation.
 - Use `ConfirmDialog.svelte`. Never use the browser's `alert()`, `confirm()` or `prompt()`.
 
+## Reordering
+- Lists are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
+  The handle is shown as a plain grip icon without a button frame (it is a grip, not a button),
+  but keeps a 40 px touch area and a visible focus ring for keyboard users.
+- Dragging must never be the only way (WCAG 2.2, 2.5.7). Every handle also supports:
+  - **keyboard:** focus the handle and press Arrow Up / Arrow Down; the new position is announced;
+  - **single tap or click** without dragging: a small menu with "Move up" / "Move down".
+- While dragging, the row lifts (shadow) and follows the pointer, and the other rows slide apart
+  to open a gap where it will land. In another section, that section grows and the sections below
+  move down. On drop the row glides into place. The page scrolls near the top or bottom edge.
+  With "reduce motion" turned on, rows move instantly instead of sliding.
+- Items can move **between sections** (drag into another section, also an empty one; with the
+  keyboard or menu, moving past the first or last item continues into the neighbouring section).
+- An item moves **together with its bullets** and lands only between whole groups; a single bullet
+  moves on its own.
+
 ## Touch, contrast and readability
 - Touch targets at least **40 × 40 px** (WCAG 2.2 requires 24 px; 40 px+ suits gloves).
 - Contrast at least 4.5:1 for text and 3:1 for icons, borders and focus rings, in both
@@ -46,16 +62,16 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Print / PDF / Word | `Printer` |
   | Export file | `Share` |
   | Delete | `Trash2` |
-  | Move up / down | `ArrowUp` / `ArrowDown` |
+  | Reorder (drag handle) | `GripVertical` |
   | Add item / section | `Plus` (with text) |
-  | Bullet under item above (toggle) | `ListIndentIncrease` |
-  | Critical item (toggle) | `CircleAlert` |
-  | Abort row (toggle) | `OctagonX` |
   | Choose logo | `ImageUp` (with text) |
   | Warning in dialogs | `TriangleAlert` |
 
-- **On/off settings** use icon toggle buttons (`IconButton` with `pressed`): when on, the button
-  gets an accent outline and tint and `aria-pressed="true"`. The tooltip names the setting.
+- **Mutually exclusive choices use a dropdown**, not separate toggles. Example: an item is exactly
+  one of Normal, Bullet, Critical or Abort (the data model enforces this too). A non-default choice
+  is also shown in colour on the dropdown, so the row's type is visible at a glance.
+- **Independent on/off settings** use icon toggle buttons (`IconButton` with `pressed`): when on,
+  the button gets an accent outline and tint and `aria-pressed="true"`. The tooltip names the setting.
 - Actions without a well-known icon (e.g. "New revision") stay text buttons; adding items or
   sections uses icon plus text.
 
