@@ -1,0 +1,27 @@
+# Dependabot opens pull requests for dependency updates. Every update PR goes
+# through the normal checks: CI, the browser smoke test and a Cloudflare preview.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      # One PR per week for all minor/patch updates, instead of one per package.
+      minor-and-patch:
+        update-types: [minor, patch]
+    # Major updates come as separate PRs, since they can need code changes.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
