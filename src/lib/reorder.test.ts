@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { itemUnits, moveBlock, nearestIndex, singleUnits, unitOf } from './reorder'
+import { itemUnits, moveBlock, singleUnits, unitOf } from './reorder'
 
 describe('units (items with their bullets)', () => {
   // A, a1, a2 (bullets of A), B, C, c1
@@ -56,10 +56,3 @@ describe('moveBlock', () => {
   })
 })
 
-describe('nearestIndex', () => {
-  it('picks the closest position', () => {
-    expect(nearestIndex(12, [0, 10, 30])).toBe(1)
-    expect(nearestIndex(-5, [0, 10, 30])).toBe(0)
-    expect(nearestIndex(100, [0, 10, 30])).toBe(2)
-  })
-})

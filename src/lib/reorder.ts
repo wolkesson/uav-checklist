@@ -33,9 +33,3 @@ export function moveBlock<T>(src: T[], [start, end]: Unit, dst: T[], at: number)
   return true
 }
 
-/** Index of the value in `positions` closest to `y`. */
-export function nearestIndex(y: number, positions: number[]): number {
-  let best = 0
-  positions.forEach((p, i) => { if (Math.abs(p - y) < Math.abs(positions[best] - y)) best = i })
-  return best
-}

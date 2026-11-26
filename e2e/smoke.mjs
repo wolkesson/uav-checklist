@@ -24,7 +24,8 @@ try {
     await new Promise((r) => setTimeout(r, 250))
   }
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {})
-  const ctx = await browser.newContext({ acceptDownloads: true })
+  // Reduced motion: rows move instantly instead of sliding, so positions are stable to measure.
+  const ctx = await browser.newContext({ acceptDownloads: true, reducedMotion: 'reduce' })
   await ctx.route(`${BASE}**`, async (route) => {
     const r = await route.fetch()
     await route.fulfill({ response: r, headers: { ...r.headers(), 'content-security-policy': csp } })

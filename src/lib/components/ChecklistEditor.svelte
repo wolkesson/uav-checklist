@@ -99,7 +99,7 @@
 
 <div class="sections" data-sortable-list data-group="sections" data-list-id="sections" data-list-label="the checklist">
 {#each c.sections as s, si (s.id)}
-  <section class="section" data-sortable-item data-drag-label={plainText(s.title) || 'Section'} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
+  <section class="section" data-sortable-item data-flip-key={s.id} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
     <div class="section-head">
       <DragHandle id={s.id} group="sections" label="section" onmove={moveSection} />
       <input class="section-title" bind:value={s.title} aria-label="Section title" />
@@ -112,7 +112,7 @@
     <div class="items" data-sortable-list data-group="items" data-list-id={s.id} data-list-label={`section ${plainText(s.title)}`}>
     {#each s.items as item, ii (item.id)}
       <div class="item type-{itemType(item)}" data-sortable-item data-bullet={item.type === 'bullet' || undefined}
-        data-drag-label={plainText(item.text) || 'Empty item'}>
+        data-flip-key={item.id}>
         <div class="handle">
           <DragHandle id={item.id} group="items" groupBullets={item.type !== 'bullet'}
             label={item.type !== 'bullet' && s.items[ii + 1]?.type === 'bullet' ? 'item with its bullets' : 'item'}

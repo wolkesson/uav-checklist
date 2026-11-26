@@ -19,7 +19,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { ArrowDown, ArrowUp, GripVertical } from '@lucide/svelte'
-  import { itemUnits, nearestIndex, singleUnits, unitOf, type Unit } from '../reorder'
+  import { itemUnits, singleUnits, unitOf, type Unit } from '../reorder'
 
   /**
    * Drag handle for reordering (docs/ui-guidelines.md, "Reordering").
@@ -28,10 +28,11 @@
    *  - lists:  elements with `data-sortable-list`, `data-group`, `data-list-id`, `data-list-label`;
    *            lists with the same group accept each other's rows (e.g. items across sections);
    *  - rows:   direct children with `data-sortable-item`; bullet rows also have `data-bullet`;
-   *            `data-drag-label` is the text shown next to the pointer while dragging.
+   *            `data-flip-key` (row and section ids) lets rows slide smoothly when the layout changes.
    *
    * Three ways to move (WCAG 2.2, 2.5.7):
-   *  - drag (mouse, pen, touch): a line shows where the row will land, in any list of the group;
+   *  - drag (mouse, pen, touch): the row lifts and follows the pointer, and the other rows make
+   *    room where it will land, in any list of the group (other sections grow as needed);
    *  - keyboard: Arrow Up / Arrow Down on the focused handle; past the start or end of a list
    *    the row moves into the previous / next list;
    *  - tap or click without dragging: a menu with Move up / Move down.
@@ -92,15 +93,52 @@
   const listId = (l: HTMLElement) => l.dataset.listId ?? ''
   const listLabel = (l: HTMLElement) => l.dataset.listLabel ?? ''
 
+  // ---- smooth movement (FLIP: measure, change layout, animate from old to new position) ----------
+
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+  /** Rows and sections that animate when the layout changes; floating (dragged) rows excluded. */
+  const flipEls = () =>
+    [...document.querySelectorAll<HTMLElement>('[data-flip-key]')].filter((e) => !e.classList.contains('dragging'))
+
+  /** Step 1: remember where everything is on screen now, then clear running animations. */
+  function flipStart(): Map<string, number> {
+    const first = new Map<string, number>()
+    for (const el of flipEls()) first.set(el.dataset.flipKey!, el.getBoundingClientRect().top)
+    for (const el of flipEls()) { el.style.transition = 'none'; el.style.transform = '' }
+    return first
+  }
+
+  /** Step 2 (after the layout changed): slide every element from its old to its new position. */
+  function flipEnd(first: Map<string, number>, measured?: () => void) {
+    const els = flipEls()
+    const last = new Map(els.map((el) => [el, el.getBoundingClientRect().top]))
+    measured?.() // layout is settled and untransformed here
+    if (reducedMotion()) return
+    const delta = (el: HTMLElement) => {
+      const f = first.get(el.dataset.flipKey!)
+      return f === undefined ? 0 : f - last.get(el)!
+    }
+    for (const el of els) {
+      // A row inside a section that also moves only needs its own share of the movement.
+      const parent = el.parentElement?.closest<HTMLElement>('[data-flip-key]')
+      const d = delta(el) - (parent && last.has(parent) ? delta(parent) : 0)
+      el.style.transform = d ? `translateY(${d}px)` : ''
+    }
+    void document.body.offsetHeight
+    for (const el of els) { el.style.transition = 'transform .16s ease'; el.style.transform = '' }
+  }
+
   // ---- moving ----------------------------------------------------------------------------------
 
   async function apply(to: { list: HTMLElement; at: number }, direction: string) {
     const here = locate()
     if (!here) return
     const crossing = to.list !== here.list
+    const first = flipStart()
     onmove({ list: listId(here.list), start: here.start, end: here.end }, { list: listId(to.list), at: to.at })
-    announce(crossing ? `${capitalised} moved to ${listLabel(to.list)}.` : `${capitalised} moved ${direction}.`)
     await tick()
+    flipEnd(first)
+    announce(crossing ? `${capitalised} moved to ${listLabel(to.list)}.` : `${capitalised} moved ${direction}.`)
     document.querySelector<HTMLButtonElement>(`[data-handle-id="${CSS.escape(id)}"]`)?.focus()
   }
 
@@ -129,39 +167,114 @@
   }
 
   // ---- dragging --------------------------------------------------------------------------------
+  // The dragged rows are lifted out of the page (position: fixed) and follow the pointer. A real
+  // gap of the same height opens where they would land, so rows slide apart and, in another
+  // section, that section grows and the sections below move down. On drop the rows glide in.
 
-  interface Target { list: HTMLElement; at: number; y: number }
-  interface ListInfo { el: HTMLElement; top: number; bottom: number; left: number; width: number; boundaries: { at: number; y: number }[] }
+  /** A drop position: before row `at` of `list`, counting only the rows that are not dragged. */
+  interface Slot { list: HTMLElement; at: number }
+  interface Box { top: number; bottom: number }
+  interface ListSnap { el: HTMLElement; box: Box; rows: HTMLElement[]; boxes: Box[] }
   interface Drag {
     pointerId: number
-    startY: number
-    lastClientX: number
+    startClientY: number
     lastClientY: number
     active: boolean
     moving: HTMLElement[]
+    offsets: number[] // each dragged row's top relative to the pointer
+    blockHeight: number
     home: HTMLElement
     start: number
     end: number
-    lists: ListInfo[]
-    target: Target | null
-    indicator?: HTMLElement
-    ghost?: HTMLElement
+    slot: Slot | null
+    gap: { el: HTMLElement; prop: 'marginTop' | 'paddingBottom' } | null
+    snaps: ListSnap[]
     scrollTimer?: ReturnType<typeof setInterval>
   }
   let drag: Drag | null = null
 
-  /** Document y of the possible drop positions (between units) in a list. */
-  function measure(list: HTMLElement): ListInfo {
-    const r = list.getBoundingClientRect()
-    const top = r.top + scrollY
-    const rows = rowsIn(list)
-    const boxes = rows.map((row) => { const b = row.getBoundingClientRect(); return { top: b.top + scrollY, bottom: b.bottom + scrollY } })
-    const boundaries = unitsIn(rows).map(([s]) => ({
-      at: s,
-      y: s === 0 ? boxes[0].top - 3 : (boxes[s - 1].bottom + boxes[s].top) / 2,
-    }))
-    boundaries.push({ at: rows.length, y: rows.length ? boxes[rows.length - 1].bottom + 3 : top + r.height / 2 })
-    return { el: list, top, bottom: top + r.height, left: r.left + scrollX, width: r.width, boundaries }
+  const docBox = (el: Element): Box => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top + scrollY, bottom: r.bottom + scrollY }
+  }
+  const staying = (list: HTMLElement) => rowsIn(list).filter((r) => !drag!.moving.includes(r))
+
+  /** Opens the gap at `slot` (and closes the previous one). Call between flipStart and flipEnd. */
+  function setGap(slot: Slot) {
+    if (!drag) return
+    if (drag.gap) drag.gap.el.style[drag.gap.prop] = ''
+    const rows = staying(slot.list)
+    const rowGap = parseFloat(getComputedStyle(slot.list).rowGap) || 0
+    const el = slot.at < rows.length ? rows[slot.at] : slot.list
+    const prop = el === slot.list ? 'paddingBottom' : 'marginTop'
+    el.style[prop] = `${drag.blockHeight + rowGap}px`
+    drag.gap = { el, prop }
+  }
+
+  /** Layout positions of all lists and their rows (measured with no animation running). */
+  function snapshot() {
+    if (!drag) return
+    drag.snaps = listsInGroup().map((el) => {
+      const rows = staying(el)
+      return { el, box: docBox(el), rows, boxes: rows.map(docBox) }
+    })
+  }
+
+  /** Where the dragged block would land for its current centre (document y). */
+  function slotFor(y: number): Slot {
+    const d = drag!
+    const dist = (b: Box) => (y < b.top ? b.top - y : y > b.bottom ? y - b.bottom : 0)
+    // Stay in the current list while near it, so the gap doesn't flicker between sections.
+    const current = d.snaps.find((s) => s.el === d.slot?.list)
+    const snap = current && dist(current.box) < 16 ? current : d.snaps.reduce((a, b) => (dist(b.box) < dist(a.box) ? b : a))
+    const units = unitsIn(snap.rows)
+    // The block goes after every unit whose centre is above the block's centre.
+    const k = units.filter(([s, e]) => (snap.boxes[s].top + snap.boxes[e - 1].bottom) / 2 < y).length
+    return { list: snap.el, at: k < units.length ? units[k][0] : snap.rows.length }
+  }
+
+  function update() {
+    if (!drag?.active) return
+    drag.moving.forEach((r, i) => { r.style.top = `${drag!.lastClientY + drag!.offsets[i]}px` })
+    const centre = drag.lastClientY + drag.offsets[0] + drag.blockHeight / 2 + scrollY
+    const slot = slotFor(centre)
+    if (slot.list === drag.slot?.list && slot.at === drag.slot.at) return
+    drag.slot = slot
+    const first = flipStart()
+    setGap(slot)
+    flipEnd(first, snapshot)
+  }
+
+  function lift() {
+    const d = drag!
+    const rects = d.moving.map((r) => r.getBoundingClientRect())
+    // Relative to where the pointer went down: the rows have not moved yet.
+    d.offsets = rects.map((r) => r.top - d.startClientY)
+    d.blockHeight = rects[rects.length - 1].bottom - rects[0].top
+    const first = flipStart()
+    d.moving.forEach((r, i) => {
+      r.classList.add('dragging')
+      Object.assign(r.style, {
+        position: 'fixed', left: `${rects[i].left}px`, top: `${rects[i].top}px`, width: `${rects[i].width}px`,
+        margin: '0', transform: '', transition: 'none',
+      })
+    })
+    // Open the gap where the rows were, so nothing moves until the pointer does.
+    d.slot = { list: d.home, at: d.start }
+    setGap(d.slot)
+    flipEnd(first, snapshot)
+  }
+
+  /** Puts the dragged rows back into the page and removes the gap. */
+  function settle() {
+    const d = drag!
+    clearInterval(d.scrollTimer)
+    document.body.classList.remove('is-dragging')
+    if (d.gap) d.gap.el.style[d.gap.prop] = ''
+    for (const r of d.moving) {
+      r.classList.remove('dragging')
+      Object.assign(r.style, { position: '', left: '', top: '', width: '', margin: '', transition: '' })
+    }
   }
 
   function onPointerDown(e: PointerEvent) {
@@ -170,50 +283,21 @@
     if (!here) return
     button.setPointerCapture(e.pointerId)
     drag = {
-      pointerId: e.pointerId, startY: e.clientY + scrollY, lastClientX: e.clientX, lastClientY: e.clientY, active: false,
-      moving: here.rows.slice(here.start, here.end), home: here.list, start: here.start, end: here.end,
-      lists: [], target: null,
+      pointerId: e.pointerId, startClientY: e.clientY, lastClientY: e.clientY, active: false,
+      moving: here.rows.slice(here.start, here.end), offsets: [], blockHeight: 0,
+      home: here.list, start: here.start, end: here.end, slot: null, gap: null, snaps: [],
     }
-  }
-
-  function update() {
-    if (!drag || !drag.lists.length) return
-    const y = drag.lastClientY + scrollY
-    // A small label follows the pointer; the rows themselves stay in place (dimmed).
-    drag.ghost!.style.transform = `translate(${drag.lastClientX + 16}px, ${drag.lastClientY - 18}px)`
-    // The list under the pointer, otherwise the nearest one.
-    const dist = (l: ListInfo) => (y < l.top ? l.top - y : y > l.bottom ? y - l.bottom : 0)
-    const list = drag.lists.reduce((a, b) => (dist(b) < dist(a) ? b : a))
-    const b = list.boundaries[nearestIndex(y, list.boundaries.map((x) => x.y))]
-    const noop = list.el === drag.home && b.at >= drag.start && b.at <= drag.end
-    drag.target = noop ? null : { list: list.el, at: b.at, y: b.y }
-    const ind = drag.indicator!
-    ind.hidden = noop
-    ind.style.top = `${b.y - 1.5}px`
-    ind.style.left = `${list.left}px`
-    ind.style.width = `${list.width}px`
   }
 
   function onPointerMove(e: PointerEvent) {
     if (!drag || e.pointerId !== drag.pointerId) return
-    drag.lastClientX = e.clientX
     drag.lastClientY = e.clientY
     if (!drag.active) {
-      if (Math.abs(e.clientY + scrollY - drag.startY) < DRAG_THRESHOLD) return
+      if (Math.abs(e.clientY - drag.startClientY) < DRAG_THRESHOLD) return
       drag.active = true
       menuOpen = false
-      drag.lists = listsInGroup().map(measure)
-      for (const r of drag.moving) r.classList.add('drag-source')
-      drag.indicator = Object.assign(document.createElement('div'), { className: 'drop-indicator' })
-      const extra = drag.moving.length - 1
-      const name = drag.moving[0].dataset.dragLabel || capitalised
-      drag.ghost = Object.assign(document.createElement('div'), {
-        className: 'drag-ghost',
-        textContent: extra ? `${name}  + ${extra} bullet${extra > 1 ? 's' : ''}` : name,
-      })
-      drag.ghost.setAttribute('aria-hidden', 'true')
-      document.body.append(drag.indicator, drag.ghost)
       document.body.classList.add('is-dragging')
+      lift()
       drag.scrollTimer = setInterval(() => {
         if (!drag) return
         const cy = drag.lastClientY
@@ -224,27 +308,33 @@
     update()
   }
 
-  function endDrag() {
-    if (!drag) return
-    clearInterval(drag.scrollTimer)
-    drag.indicator?.remove()
-    drag.ghost?.remove()
-    document.body.classList.remove('is-dragging')
-    for (const r of drag.moving) r.classList.remove('drag-source')
-  }
-
-  function onPointerUp(e: PointerEvent) {
+  async function onPointerUp(e: PointerEvent) {
     if (!drag || e.pointerId !== drag.pointerId) return
-    const { active, target, home, start } = drag
-    endDrag()
+    const d = drag
+    if (!d.active) { drag = null; openMenu(false); return } // a tap or click without dragging
+    const slot = d.slot!
+    // Convert the slot (rows not being dragged) to an index in the list as it is now.
+    const at = slot.list === d.home && slot.at >= d.start ? slot.at + (d.end - d.start) : slot.at
+    const crossing = slot.list !== d.home
+    const first = new Map<string, number>()
+    for (const el of document.querySelectorAll<HTMLElement>('[data-flip-key]')) first.set(el.dataset.flipKey!, el.getBoundingClientRect().top)
+    for (const el of flipEls()) { el.style.transition = 'none'; el.style.transform = '' }
+    settle()
     drag = null
-    if (!active) { openMenu(false); return } // a tap or click without dragging
-    if (target) apply(target, target.list === home && target.at < start ? 'up' : 'down')
+    onmove({ list: listId(d.home), start: d.start, end: d.end }, { list: listId(slot.list), at })
+    await tick()
+    flipEnd(first)
+    if (at < d.start || at > d.end || crossing) {
+      announce(crossing ? `${capitalised} moved to ${listLabel(slot.list)}.` : `${capitalised} moved.`)
+    }
   }
 
   function onPointerCancel() {
-    endDrag()
+    if (!drag) return
+    const first = drag.active ? flipStart() : null
+    if (drag.active) settle()
     drag = null
+    if (first) flipEnd(first)
   }
 
   // ---- menu (tap / click / Enter) -------------------------------------------------------------
