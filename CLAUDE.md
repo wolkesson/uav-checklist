@@ -24,6 +24,11 @@
 - Before every commit, check the staged diff for customer names, logos (`data:image`)
   and checklist content that came from a user's files.
 
+## User interface
+- Follow `docs/ui-guidelines.md` (WCAG 2.2 AA based): Lucide icons only, icon-only buttons via
+  `IconButton.svelte` (accessible name + tooltip), destructive actions red and confirmed with
+  `ConfirmDialog.svelte`, never `alert()`/`confirm()`/`prompt()`.
+
 ## Architecture (see docs/adr/)
 - Static, client-only app (Svelte 5 + TypeScript + Vite). No backend, no external
   requests, relative paths: the same build must run airgapped.

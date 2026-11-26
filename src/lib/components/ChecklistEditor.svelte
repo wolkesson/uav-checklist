@@ -2,10 +2,25 @@
   import { newItem, newSection, SECTION_STYLES, type Checklist } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
+  import { plainText } from '../markup'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   let { checklist: c, onDone, onRun, onPrint }:
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
   let logoError = $state('')
+  let sectionToDelete = $state<number | null>(null)
+  let confirmOpen = $state(false)
+
+  // Deleting a section that still has items loses data, so it needs confirmation (docs/ui-guidelines.md).
+  function deleteSection(si: number) {
+    if (c.sections[si].items.some((i) => i.text.trim())) {
+      sectionToDelete = si
+      confirmOpen = true
+    } else {
+      c.sections.splice(si, 1)
+      touch(c)
+    }
+  }
 
   function move<T>(arr: T[], i: number, d: number) {
     const j = i + d
@@ -65,7 +80,7 @@
       </select>
       <button title="Move section up" onclick={() => move(c.sections, si, -1)}>↑</button>
       <button title="Move section down" onclick={() => move(c.sections, si, 1)}>↓</button>
-      <button class="danger" title="Delete section" onclick={() => { c.sections.splice(si, 1); touch(c) }}>✕</button>
+      <button class="danger" title="Delete section" aria-label="Delete section" onclick={() => deleteSection(si)}>✕</button>
     </div>
     {#each s.items as item, ii (item.id)}
       <div class="row item" class:indented={item.level === 1}>
@@ -87,6 +102,14 @@
   </section>
 {/each}
 <button onclick={() => { c.sections.push(newSection()); touch(c) }}>+ Section</button>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title={`Delete section “${sectionToDelete !== null ? plainText(c.sections[sectionToDelete]?.title ?? '') : ''}”?`}
+  message={`This section and its ${sectionToDelete !== null ? c.sections[sectionToDelete]?.items.length : 0} items are removed from the checklist.`}
+  confirmLabel="Delete section"
+  onconfirm={() => { if (sectionToDelete !== null) { c.sections.splice(sectionToDelete, 1); sectionToDelete = null; touch(c) } }}
+/>
 
 <style>
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
