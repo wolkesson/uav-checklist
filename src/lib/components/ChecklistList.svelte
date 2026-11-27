@@ -7,6 +7,7 @@
   import Markup from './Markup.svelte'
   import IconButton from './IconButton.svelte'
   import ConfirmDialog from './ConfirmDialog.svelte'
+  import MenuButton from './MenuButton.svelte'
 
   let { onNew, onEdit, onRun, onPrint }:
     { onNew: () => void; onEdit: (id: string) => void; onRun: (id: string) => void; onPrint: (id: string) => void } = $props()
@@ -44,16 +45,19 @@
   <ul class="cards">
     {#each app.checklists as c (c.id)}
       <li class="card">
-        <div>
+        <!-- Tapping the checklist runs it (the only way on narrow screens, where the Run button is hidden). -->
+        <button type="button" class="card-main" aria-label={`Run ${plainText(c.title)}`} onclick={() => onRun(c.id)}>
           <strong><Markup text={c.title} /></strong>
-          <div class="muted small">{c.aircraft || '—'} · v{c.revision}{#if c.status !== 'released'} · <span class="draft-tag">Draft</span>{/if} · {c.sections.reduce((n, s) => n + s.items.length, 0)} items</div>
-        </div>
+          <span class="muted small">{c.aircraft || '—'} · v{c.revision}{#if c.status !== 'released'} · <span class="draft-tag">Draft</span>{/if} · {c.sections.reduce((n, s) => n + s.items.length, 0)} items</span>
+        </button>
         <div class="actions">
-          <IconButton icon={Play} label="Run checklist" variant="primary" onclick={() => onRun(c.id)} />
+          <span class="run-btn"><IconButton icon={Play} label="Run checklist" variant="primary" onclick={() => onRun(c.id)} /></span>
           <IconButton icon={SquarePen} label="Edit checklist" onclick={() => onEdit(c.id)} />
-          <IconButton icon={Printer} label="Print or export PDF / Word" onclick={() => onPrint(c.id)} />
-          <IconButton icon={Share} label="Export checklist file" onclick={() => download([c], safeFilename(c.title))} />
-          <IconButton icon={Trash2} label="Delete checklist" variant="danger" tipAlign="end" onclick={() => askDelete(c)} />
+          <MenuButton label="Checklist actions" items={[
+            { label: 'Print or export PDF / Word', icon: Printer, onselect: () => onPrint(c.id) },
+            { label: 'Export checklist file', icon: Share, onselect: () => download([c], safeFilename(c.title)) },
+            { label: 'Delete checklist', icon: Trash2, danger: true, onselect: () => askDelete(c) },
+          ]} />
         </div>
       </li>
     {/each}
@@ -69,5 +73,16 @@
 />
 
 <style>
+  .card { flex-wrap: nowrap; padding: 0; }
+  .card-main {
+    flex: 1; min-width: 0; display: grid; gap: 2px; text-align: left;
+    background: none; border: none; border-radius: 8px; padding: 12px; cursor: pointer;
+  }
+  .card-main:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .card-main:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .card-main strong, .card-main span { overflow-wrap: anywhere; }
+  .actions { flex: none; padding-right: 12px; }
+  /* Narrow screens: tap the checklist to run it; no separate Run button. */
+  @media (max-width: 520px) { .run-btn { display: none; } }
   .draft-tag { color: var(--draft-fg); font-weight: 700; }
 </style>

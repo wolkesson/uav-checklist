@@ -37,19 +37,32 @@ try {
 
   await page.goto(BASE)
 
-  // Checklist list: icon buttons have accessible names; delete asks for confirmation.
+  // Checklist list: Run and Edit buttons, the rest in a ⋯ menu; tapping the checklist runs it;
+  // delete (from the menu) asks for confirmation.
   const card = page.locator('.card').first()
-  for (const name of ['Run checklist', 'Edit checklist', 'Print or export PDF / Word', 'Export checklist file', 'Delete checklist']) {
+  for (const name of ['Run checklist', 'Edit checklist', 'Checklist actions']) {
     if (!(await card.getByRole('button', { name, exact: true }).count())) fail(`list button "${name}" missing`)
   }
+  await card.getByRole('button', { name: 'Checklist actions' }).click()
+  for (const name of ['Print or export PDF / Word', 'Export checklist file', 'Delete checklist']) {
+    if (!(await page.getByRole('menuitem', { name }).count())) fail(`list menu item "${name}" missing`)
+  }
+  await page.keyboard.press('Escape')
+  await card.locator('.card-main').click()
+  await page.locator('.progress').waitFor({ timeout: 3000 }).catch(() => fail('tapping a checklist did not run it'))
+  await page.getByRole('button', { name: 'Back to checklists' }).click()
+  const openDelete = async () => {
+    await page.locator('.card').first().getByRole('button', { name: 'Checklist actions' }).click()
+    await page.getByRole('menuitem', { name: 'Delete checklist' }).click()
+  }
   const before = await page.locator('.card').count()
-  await card.getByRole('button', { name: 'Delete checklist' }).click()
+  await openDelete()
   const dialog = page.getByRole('dialog')
   await dialog.waitFor({ timeout: 3000 }).catch(() => fail('delete did not open a confirmation dialog'))
   if (!(await dialog.getByRole('button', { name: 'Cancel' }).evaluate((b) => b === document.activeElement))) fail('Cancel is not focused in the delete dialog')
   await page.keyboard.press('Escape')
   if ((await page.locator('.card').count()) !== before) fail('Escape in the delete dialog removed the checklist')
-  await card.getByRole('button', { name: 'Delete checklist' }).click()
+  await openDelete()
   await dialog.getByRole('button', { name: 'Delete checklist' }).click()
   if ((await page.locator('.card').count()) !== before - 1) fail('confirming delete did not remove the checklist')
 
@@ -224,7 +237,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }
