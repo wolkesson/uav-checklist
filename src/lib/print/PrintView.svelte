@@ -106,10 +106,6 @@
     </button>
   </div>
 </div>
-<p class="hint no-print muted small">
-  {pages.length} page{pages.length === 1 ? '' : 's'}, {settings.paper}. Print opens your browser's print dialog
-  (keep margins on <em>Default</em> and scale at 100 %). Export PDF and Export Word download a file.
-</p>
 {#if error}<p class="error no-print" role="alert">{error}</p>{/if}
 
 <!-- Off-screen copy used only to measure row heights at the real column width. -->
