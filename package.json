@@ -29,5 +29,10 @@
   "license": "MIT",
   "dependencies": {
     "docx": "^9.16.0"
+  },
+  "overrides": {
+    "workbox-build": {
+      "glob": "^14.0.6"
+    }
   }
 }
