@@ -1,4 +1,5 @@
 <script lang="ts">
+  import VersionTag from './lib/components/VersionTag.svelte'
   import { app, addChecklist } from './lib/store.svelte'
   import ChecklistList from './lib/components/ChecklistList.svelte'
   import ChecklistEditor from './lib/components/ChecklistEditor.svelte'
@@ -52,3 +53,5 @@
     />
   {/if}
 </main>
+
+<VersionTag />
