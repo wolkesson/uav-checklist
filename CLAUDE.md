@@ -17,7 +17,8 @@
 - Dependabot (`.github/dependabot.yml`) opens weekly update PRs; review them like any other PR.
   Don't use `npm audit fix --force`: it can downgrade packages across major versions.
 - Bump `version` in `package.json` for user-visible changes. Releases are made by
-  pushing a `vX.Y.Z` tag after merge (builds the offline zip).
+  creating a `vX.Y.Z` release on github.com or pushing a `vX.Y.Z` tag after merge; either way the
+  release workflow builds the offline zip and attaches it. The tag must match `package.json`.
 
 ## Node version
 - One Node major everywhere: `.node-version` (read by CI), the Cloudflare `NODE_VERSION`

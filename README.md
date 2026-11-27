@@ -59,7 +59,9 @@ Every push to `main` deploys; other branches and pull requests get preview URLs.
 npm run package:offline   # creates release/uav-checklist-offline-<version>.zip
 ```
 
-Pushing a tag like `v0.1.0` builds the zip in GitHub Actions and attaches it to a GitHub release.
+To release, either create a release on GitHub (Releases → *Draft a new release* → new tag such as
+`v0.6.0` on `main` → *Publish*), or push a tag such as `v0.6.0`. GitHub Actions then builds the zip and
+attaches it to the release. The tag must match `version` in `package.json`, otherwise the build stops.
 On the target machine, unzip and run `node serve.mjs` (or `python3 -m http.server 8080 --directory app`),
 then open http://127.0.0.1:8080/. See `README.txt` inside the zip.
 
