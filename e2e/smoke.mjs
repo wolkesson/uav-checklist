@@ -139,6 +139,17 @@ try {
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
 
+  if (!(await page.getByRole('button', { name: 'Print', exact: true }).count())) fail('Print button missing')
+  // Export PDF downloads a real PDF directly (no print dialog).
+  const [pdf] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15000 }),
+    page.getByRole('button', { name: 'Export PDF' }).click(),
+  ]).catch(() => [null])
+  if (!pdf || !pdf.suggestedFilename().endsWith('.pdf')) fail('Export PDF did not download a .pdf')
+  else {
+    const head = (await import('node:fs')).readFileSync(await pdf.path()).subarray(0, 5).toString()
+    if (head !== '%PDF-') fail(`Export PDF file is not a PDF (starts with ${JSON.stringify(head)})`)
+  }
   const [download] = await Promise.all([
     page.waitForEvent('download', { timeout: 10000 }),
     page.getByRole('button', { name: 'Export Word' }).click(),
@@ -155,7 +166,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }
