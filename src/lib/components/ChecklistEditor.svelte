@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import { ArrowDown, ArrowLeft, ArrowUp, CircleCheck, FilePlus, ImageUp, Lock, Pencil, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
+  import { ArrowDown, ArrowLeft, ArrowUp, CircleCheck, FilePlus, ImageUp, Lock, LockOpen, Pen, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
   import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType, type SectionStyle } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
@@ -123,16 +123,15 @@
         <span class="rev-label" id="rev-label">Revision</span>
         <div class="rev-line" class:released={locked} role="group" aria-labelledby="rev-label">
           <span class="badge">
-            {#if locked}<Lock size={14} aria-hidden="true" />Released{:else}<Pencil size={14} aria-hidden="true" />Draft{/if}
+            {#if locked}<Lock size={14} aria-hidden="true" />Released{:else}<LockOpen size={14} aria-hidden="true" />Draft{/if}
           </span>
           <span class="rev-text">v{c.revision} · {c.revisionDate ?? '—'}</span>
           {#if locked}
             <button type="button" class="rev-btn" onclick={newDraft}><FilePlus size={18} aria-hidden="true" />New draft</button>
           {:else}
+            <!-- Pen next to the version and date it edits, before Release. -->
+            <IconButton icon={Pen} label="Edit version and date" tipAlign="end" onclick={() => (editRevisionOpen = true)} />
             <button type="button" class="rev-btn release" onclick={() => (releaseOpen = true)}><CircleCheck size={18} aria-hidden="true" />Release</button>
-            <MenuButton label="Revision actions" items={[
-              { label: 'Edit version and date…', icon: Pencil, onselect: () => (editRevisionOpen = true) },
-            ]} />
           {/if}
         </div>
       </div>
@@ -227,7 +226,7 @@
   .rev-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 10px; white-space: nowrap; flex: none; }
   .badge { flex: none; }
   .rev-btn.release { background: var(--released-solid); border-color: var(--released-solid); color: #fff; font-weight: 600; }
-  .rev-line :global(.menu-button .trigger) { min-height: 38px; height: 38px; }
+  .rev-line :global(.icon-btn) { min-height: 38px; height: 38px; width: 38px; flex: none; }
   /* Locked (released): read-only fields look read-only. */
   input:disabled, textarea:disabled, select:disabled { background: var(--card); color: var(--fg); opacity: .75; cursor: default; }
   /* Logo upload area first (top left), title and revision beside it. */

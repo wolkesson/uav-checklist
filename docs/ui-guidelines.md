@@ -30,9 +30,9 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 ## Revisions (draft and released)
 - A checklist is a **Draft** (editable, amber) or **Released** (locked, green). The status, version
   and date sit on one line under the title, the height of an input.
-- Draft: one button, **Release** (asks for confirmation), and a "⋯" menu with *Edit version and
-  date…*. The date follows the latest edit unless it was set by hand.
-- Released: every field is read-only and edit controls (drag handles, delete, add, menus) are
+- Draft (open padlock): a pen button *Edit version and date* next to the version, then **Release**
+  (asks for confirmation). The date follows the latest edit unless it was set by hand.
+- Released (closed padlock): every field is read-only and edit controls (drag handles, delete, add, menus) are
   hidden. One button, **New draft**, starts the next version.
 - Drafts can be run and printed; printouts, PDF and Word show **DRAFT** next to the date.
 
@@ -90,6 +90,8 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Reset a run | `RotateCcw` |
   | More actions (menu) | `Ellipsis` |
   | Move up / down (in menus) | `ArrowUp` / `ArrowDown` |
+  | Draft / Released | `LockOpen` / `Lock` |
+  | Edit version and date | `Pen` |
   | Warning in dialogs | `TriangleAlert` |
 
 - **Mutually exclusive choices use a dropdown**, not separate toggles. Example: an item is exactly

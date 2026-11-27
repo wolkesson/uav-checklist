@@ -176,8 +176,7 @@ try {
   // Release asks first and locks everything; New draft unlocks with the next version.
   const revLine = page.getByRole('group', { name: 'Revision' })
   if (!(await revLine.textContent()).includes('Draft')) fail('a new checklist should be a draft')
-  await revLine.getByRole('button', { name: 'Revision actions' }).click()
-  await page.getByRole('menuitem', { name: 'Edit version and date…' }).click()
+  await revLine.getByRole('button', { name: 'Edit version and date' }).click()
   const revDialog = page.getByRole('dialog', { name: 'Edit version and date' })
   await revDialog.getByRole('spinbutton', { name: 'Version' }).fill('12')
   await revDialog.getByLabel('Date', { exact: true }).fill('2026-11-20')
