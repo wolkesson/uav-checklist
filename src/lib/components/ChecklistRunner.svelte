@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Checklist } from '../model'
   import Markup from './Markup.svelte'
+  import IconButton from './IconButton.svelte'
+  import { ArrowLeft, RotateCcw } from '@lucide/svelte'
 
   let { checklist: c, onDone }: { checklist: Checklist; onDone: () => void } = $props()
 
@@ -12,8 +14,8 @@
 </script>
 
 <div class="toolbar">
-  <button onclick={onDone}>← Back</button>
-  <button onclick={() => (done = {})}>Reset</button>
+  <IconButton icon={ArrowLeft} label="Back to checklists" onclick={onDone} />
+  <IconButton icon={RotateCcw} label="Reset: untick all items" onclick={() => (done = {})} />
   <span class="progress">{count} / {all.length}{criticalOpen ? ` · ${criticalOpen} critical open` : ''}</span>
 </div>
 
