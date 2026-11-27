@@ -33,7 +33,8 @@ try {
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  // The previews test simulates GitHub being unreachable; that failed request is expected.
+  page.on('console', (m) => m.type() === 'error' && !m.location()?.url?.includes('api.github.com') && errors.push(m.text()))
 
   await page.goto(BASE)
 
@@ -41,6 +42,22 @@ try {
   const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
   const tag = page.locator('.version-tag')
   if (!(await tag.isVisible()) || !(await tag.textContent()).startsWith(`v${version}`)) fail(`version label missing or wrong: ${await tag.textContent()}`)
+
+  // Tapping the version 10 times lists the previews (GitHub answer simulated; the production CSP must allow it).
+  let githubAnswer = 'ok'
+  await ctx.route('https://api.github.com/**', (route) => githubAnswer === 'ok'
+    ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+        { number: 99, title: 'Test PR', html_url: 'https://github.com/x/pull/99', head: { ref: 'feat/test-thing' } }]) })
+    : route.abort())
+  for (let i = 0; i < 10; i++) await tag.click()
+  const previews = page.getByRole('dialog', { name: 'Available versions' })
+  await previews.getByRole('link', { name: /#99 Test PR/ }).waitFor({ timeout: 5000 }).catch(() => fail('previews list did not show the open pull request'))
+  if ((await previews.getByRole('link', { name: /#99 Test PR/ }).getAttribute('href')) !== 'https://feat-test-thing-uav-checklist.henrik-wolkesson.workers.dev') fail('wrong preview address')
+  await previews.getByRole('button', { name: 'Close' }).click()
+  githubAnswer = 'offline'
+  for (let i = 0; i < 10; i++) await tag.click()
+  await previews.getByRole('alert').waitFor({ timeout: 5000 }).catch(() => fail('no message when GitHub cannot be reached'))
+  await page.keyboard.press('Escape')
 
   // Checklist list: Run and Edit buttons, the rest in a ⋯ menu; tapping the checklist runs it;
   // delete (from the menu) asks for confirmation.
@@ -242,7 +259,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (version label, list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (version label and previews list, list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }

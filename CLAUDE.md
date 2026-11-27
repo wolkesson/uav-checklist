@@ -38,7 +38,10 @@
 
 ## Architecture (see docs/adr/)
 - Static, client-only app (Svelte 5 + TypeScript + Vite). No backend, no external
-  requests, relative paths: the same build must run airgapped.
+  requests, relative paths: the same build must run airgapped. The one exception is the hidden
+  previews list (tap the version label 10 times, `src/lib/previews.ts`): it asks
+  `api.github.com` for open PRs only when opened, and shows a message offline. Nothing else may
+  contact the internet; the CSP in `public/_headers` allows only that host.
 - Data model in `src/lib/model.ts`. Changing it means bumping `SCHEMA_VERSION`,
   adding a migration in `migrate()` and a test that old files still load.
 - Print layout in `src/lib/print/`; Word export (`docx.ts`) must follow the same

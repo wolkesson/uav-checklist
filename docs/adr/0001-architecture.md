@@ -41,3 +41,21 @@ Date: 2026-11-26 · Status: Accepted
 | **Word export with the `docx` library**, loaded only when used. Rows are single cells with a right-aligned tab for the value, like the original Word template. | Produces an editable .docx that follows the same page size, columns and box styles. Word does its own pagination, so page breaks can differ slightly from the PDF. |
 | **The logo is stored inside each checklist** as a PNG data URL (converted and downscaled on upload). | Shared checklist files print with the right logo. Customer logos and documents are never committed: `.gitignore` blocks `private/`, `*.docx`, `*.pdf` and image files. |
 
+---
+
+# ADR 0003: Hidden previews list contacts GitHub
+
+Date: 2026-11-27 · Status: Accepted
+
+**Decision:** Tapping the version label (bottom right) 10 times opens a list of available
+versions: production and the Cloudflare preview of every open pull request. The list is fetched
+from `api.github.com` (public repo, no login) when the dialog opens; preview addresses are derived
+from branch names. The Content-Security-Policy allows `connect-src https://api.github.com` for this.
+
+**Why:** The owner wants to find and open previews from the app itself.
+
+**Consequences:** This is the only request to the internet, an exception to ADR 0001's
+"no external requests". It happens only on that explicit action; offline or airgapped the dialog
+shows a message and the rest of the app is unaffected. GitHub allows 60 unauthenticated requests
+per hour per network. Very long branch names may get a shortened preview address from Cloudflare.
+
