@@ -29,12 +29,18 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 
 ## Revisions (draft and released)
 - A checklist is a **Draft** (editable, amber) or **Released** (locked, green). The status, version
-  and date sit on one line under the title, the height of an input.
+  and date sit on one line in the editor toolbar, after the icon buttons, stretched to the right
+  (on phones it wraps to its own line).
 - Draft (open padlock): a pen button *Edit version and date* next to the version, then **Release**
   (asks for confirmation). The date follows the latest edit unless it was set by hand.
 - Released (closed padlock): every field is read-only and edit controls (drag handles, delete, add, menus) are
   hidden. One button, **New draft**, starts the next version.
 - Drafts can be run and printed; printouts, PDF and Word show **DRAFT** next to the date.
+
+## Checklist list
+- Each checklist shows **Run** and **Edit**; less frequent actions (print / PDF / Word, export file,
+  delete) are in its "⋯" menu, with their icons.
+- Tapping the checklist itself runs it. On narrow screens (≤ 520 px) that is the only Run control.
 
 ## Menus and dropdowns
 - **Actions on an object that are used less often go in a "⋯" menu** (`MenuButton.svelte`, icon

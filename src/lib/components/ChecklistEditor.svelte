@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import { ArrowDown, ArrowLeft, ArrowUp, CircleCheck, FilePlus, ImageUp, Lock, LockOpen, Pen, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
+  import { ArrowDown, ArrowLeft, ArrowUp, CircleCheck, FilePlus, ImageUp, Lock, LockOpen, Pen, Play, Plus, Printer, Share, Trash2 } from '@lucide/svelte'
   import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType, type SectionStyle } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
@@ -12,6 +12,7 @@
   import SwatchSelect from './SwatchSelect.svelte'
   import MenuButton from './MenuButton.svelte'
   import { moveBlock } from '../reorder'
+  import { download, safeFilename } from '../io'
   import EditRevisionDialog from './EditRevisionDialog.svelte'
   import { isDraft, release, setRevision, startNewDraft } from '../revision'
 
@@ -93,6 +94,21 @@
   <IconButton icon={ArrowLeft} label="Back to checklists" onclick={onDone} />
   <IconButton icon={Play} label="Run checklist" variant="primary" onclick={onRun} />
   <IconButton icon={Printer} label="Print or export PDF / Word" onclick={onPrint} />
+  <IconButton icon={Share} label="Export checklist file" onclick={() => download([$state.snapshot(c) as Checklist], safeFilename(c.title))} />
+  <!-- Revision: stretched to fill the rest of the toolbar; wraps to its own line on phones. -->
+  <div class="rev-line" class:released={locked} role="group" aria-label="Revision">
+    <span class="badge">
+      {#if locked}<Lock size={14} aria-hidden="true" />Released{:else}<LockOpen size={14} aria-hidden="true" />Draft{/if}
+    </span>
+    <span class="rev-text">v{c.revision} · {c.revisionDate ?? '—'}</span>
+    {#if locked}
+      <button type="button" class="rev-btn" onclick={newDraft}><FilePlus size={18} aria-hidden="true" />New draft</button>
+    {:else}
+      <!-- Pen next to the version and date it edits, before Release. -->
+      <IconButton icon={Pen} label="Edit version and date" tipAlign="end" onclick={() => (editRevisionOpen = true)} />
+      <button type="button" class="rev-btn release" onclick={() => (releaseOpen = true)}><CircleCheck size={18} aria-hidden="true" />Release</button>
+    {/if}
+  </div>
 </div>
 
 <div class="fields" oninput={() => touch(c)}>
@@ -119,22 +135,6 @@
     </div>
     <div class="meta-head-fields">
       <label>Title <input bind:value={c.title} disabled={locked} /></label>
-      <div class="rev-field">
-        <span class="rev-label" id="rev-label">Revision</span>
-        <div class="rev-line" class:released={locked} role="group" aria-labelledby="rev-label">
-          <span class="badge">
-            {#if locked}<Lock size={14} aria-hidden="true" />Released{:else}<LockOpen size={14} aria-hidden="true" />Draft{/if}
-          </span>
-          <span class="rev-text">v{c.revision} · {c.revisionDate ?? '—'}</span>
-          {#if locked}
-            <button type="button" class="rev-btn" onclick={newDraft}><FilePlus size={18} aria-hidden="true" />New draft</button>
-          {:else}
-            <!-- Pen next to the version and date it edits, before Release. -->
-            <IconButton icon={Pen} label="Edit version and date" tipAlign="end" onclick={() => (editRevisionOpen = true)} />
-            <button type="button" class="rev-btn release" onclick={() => (releaseOpen = true)}><CircleCheck size={18} aria-hidden="true" />Release</button>
-          {/if}
-        </div>
-      </div>
     </div>
   </div>
   <label>Aircraft <input bind:value={c.aircraft} disabled={locked} placeholder="e.g. model / serial" /></label>
@@ -209,9 +209,9 @@
 
 <style>
   /* Revision: one line, the height of an input. Amber = draft, green = released. */
-  .rev-field { display: grid; gap: 4px; font-size: .9rem; min-width: 0; }
   .rev-line {
     display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 0 0 10px; min-width: 0;
+    flex: 1 1 280px; margin-left: auto; max-width: 560px;
     border: 1px solid var(--draft-border); border-radius: 6px; background: var(--draft-bg); font-size: 1rem;
   }
   .rev-line.released { border-color: var(--released-border); background: var(--released-bg); }

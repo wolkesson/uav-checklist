@@ -301,7 +301,10 @@
       drag.scrollTimer = setInterval(() => {
         if (!drag) return
         const cy = drag.lastClientY
-        const speed = cy < EDGE ? -12 : cy > innerHeight - EDGE ? 12 : 0
+        // Only when dragging towards an edge: a row grabbed near the edge doesn't scroll by itself.
+        const up = cy < EDGE && cy < drag.startClientY - DRAG_THRESHOLD
+        const down = cy > innerHeight - EDGE && cy > drag.startClientY + DRAG_THRESHOLD
+        const speed = up ? -12 : down ? 12 : 0
         if (speed) { scrollBy(0, speed); update() }
       }, 16)
     }
