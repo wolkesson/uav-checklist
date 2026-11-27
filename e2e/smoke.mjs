@@ -54,16 +54,16 @@ try {
 
   await page.getByRole('button', { name: 'New checklist' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Smoke test')
-  if (!(await page.getByRole('button', { name: 'Logo (printed header) Click to upload' }).count())) fail('logo upload area missing')
+  if (!(await page.getByRole('button', { name: 'Logo Click to upload' }).count())) fail('logo upload area missing')
   await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
   await page.locator('.logo-pick img').waitFor({ timeout: 5000 }).catch(() => fail('logo upload did not show the logo'))
-  if (!(await page.getByRole('button', { name: 'Logo (printed header) Click to change' }).count())) fail('logo area does not offer to change the logo')
+  if (!(await page.getByRole('button', { name: 'Logo Click to change' }).count())) fail('logo area does not offer to change the logo')
   // Remove logo sits inside the preview area and appears on hover.
   const remove = page.locator('.logo-drop').getByRole('button', { name: 'Remove logo' })
   if (!(await remove.count())) fail('Remove logo is not inside the logo area')
   await page.locator('.logo-drop').hover()
   await remove.click({ timeout: 3000 }).catch(() => fail('Remove logo not clickable on hover'))
-  await page.getByRole('button', { name: 'Logo (printed header) Click to upload' }).waitFor({ timeout: 3000 }).catch(() => fail('removing the logo did not empty the area'))
+  await page.getByRole('button', { name: 'Logo Click to upload' }).waitFor({ timeout: 3000 }).catch(() => fail('removing the logo did not empty the area'))
   await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
   await page.locator('.logo-pick img').waitFor({ timeout: 5000 }).catch(() => fail('re-uploading the logo failed'))
 

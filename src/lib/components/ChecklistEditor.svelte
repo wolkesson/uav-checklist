@@ -69,7 +69,7 @@
 <div class="fields" oninput={() => touch(c)}>
   <div class="meta-head">
     <div class="logo-col">
-      <span class="logo-label" id="logo-label">Logo (printed header)</span>
+      <span class="logo-label" id="logo-label">Logo</span>
       <div class="logo-drop" class:has-logo={!!c.logo}
         style:width="{LOGO_MAX.width * LOGO_PREVIEW_SCALE}px" style:height="{LOGO_MAX.height * LOGO_PREVIEW_SCALE}px">
         <button type="button" class="logo-pick" aria-labelledby="logo-label logo-action" onclick={() => logoInput?.click()}>
@@ -87,7 +87,6 @@
         {/if}
       </div>
       <input bind:this={logoInput} type="file" accept="image/*" hidden onchange={onLogo} />
-      <span class="muted small">Shown at printed proportions ({LOGO_MAX.width} × {LOGO_MAX.height} mm max).</span>
     </div>
     <div class="meta-head-fields">
       <label>Title <input bind:value={c.title} /></label>
