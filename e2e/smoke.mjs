@@ -37,6 +37,11 @@ try {
 
   await page.goto(BASE)
 
+  // Version label, bottom right: starts with the app version from package.json.
+  const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+  const tag = page.locator('.version-tag')
+  if (!(await tag.isVisible()) || !(await tag.textContent()).startsWith(`v${version}`)) fail(`version label missing or wrong: ${await tag.textContent()}`)
+
   // Checklist list: Run and Edit buttons, the rest in a ⋯ menu; tapping the checklist runs it;
   // delete (from the menu) asks for confirmation.
   const card = page.locator('.card').first()
@@ -237,7 +242,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (version label, list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }
