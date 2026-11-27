@@ -51,7 +51,7 @@
 
 <button
   type="button"
-  class="icon-btn {variant} tip-{tipAlign}"
+  class="icon-btn has-tip {variant} tip-{tipAlign}"
   class:tip-touch={tipOnTouch}
   class:pressed
   aria-pressed={pressed}
@@ -80,25 +80,5 @@
   .icon-btn.pressed { border-color: var(--accent); background: var(--pressed-bg); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  .icon-btn::after {
-    content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 8px); left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    background: var(--tip-bg); color: var(--tip-fg);
-    font-size: .8rem; line-height: 1.3; white-space: nowrap;
-    padding: 5px 8px; border-radius: 5px;
-    opacity: 0; pointer-events: none; z-index: 20;
-    transition: opacity .12s, transform .12s;
-  }
-  .tip-end::after { left: auto; right: 0; transform: translateY(4px); }
-
-  /* Hover only on devices that really hover, so a tap doesn't leave a tooltip stuck. */
-  @media (hover: hover) {
-    .icon-btn:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .tip-end:hover::after { transform: translateY(0); }
-  }
-  .icon-btn:focus-visible::after, .tip-touch::after { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .tip-end:focus-visible::after, .tip-end.tip-touch::after { transform: translateY(0); }
-
-  @media (prefers-reduced-motion: reduce) { .icon-btn::after { transition: none; } }
+  /* Tooltip styles are shared in app.css (.has-tip). */
 </style>

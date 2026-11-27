@@ -1,6 +1,6 @@
 {
   "kind": "uav-checklist",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "exportedAt": "2026-11-26T00:00:00Z",
   "checklists": [
     {
@@ -20,14 +20,14 @@
               "kind": "check",
               "text": "Airspace / restrictions checked",
               "expected": "CHECKED",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "4089ad3b-1cc6-49b2-8ce6-09c2bf817118",
               "kind": "check",
               "text": "Weather and wind within limits",
               "expected": "CHECKED",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "36ee257c-ccb6-43ed-8487-f6570739aa54",
@@ -52,14 +52,14 @@
               "kind": "check",
               "text": "Propellers secure, no damage",
               "expected": "CHECKED",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "2451a3b1-a51b-4b34-9c06-494529a318e8",
               "kind": "check",
               "text": "Flight battery charged",
               "expected": "> 90 %",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "7974d5a9-01b6-429d-9eca-ce7dceca651d",
@@ -84,21 +84,21 @@
               "kind": "check",
               "text": "Takeoff area clear",
               "expected": "CLEAR",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "1c00bd4b-9ce1-4b64-a8dd-a6e9bb10aec1",
               "kind": "check",
               "text": "GNSS lock / home point set",
               "expected": "SET",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "e93705d9-01bc-408c-a3a6-f5b483b56a82",
               "kind": "check",
               "text": "Return-to-home altitude",
               "expected": "SET",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "cbbc3a10-a838-49f1-a59d-dea635846734",
@@ -117,7 +117,7 @@
               "kind": "check",
               "text": "Motors disarmed",
               "expected": "DISARMED",
-              "critical": true
+              "type": "critical"
             },
             {
               "id": "b9e061ee-c6c8-42e2-94cd-dcf19379b4c9",

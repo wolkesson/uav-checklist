@@ -12,7 +12,7 @@
 <div class="box {s.style ?? 'normal'}">
   {#if showTitle}<div class="cl-row cl-title"><span><Markup text={s.title} /></span></div>{/if}
   {#each s.items.slice(from, to) as item, j (item.id)}
-    <div class="cl-row" class:shaded={shade[from + j]} class:bullet={item.level === 1} class:abort={item.highlight === 'abort'}>
+    <div class="cl-row" class:shaded={shade[from + j]} class:bullet={item.type === 'bullet'} class:abort={item.type === 'abort'}>
       <span class="text"><Markup text={item.text} /></span>
       {#if item.expected}<span class="value"><Markup text={item.expected} /></span>{/if}
     </div>

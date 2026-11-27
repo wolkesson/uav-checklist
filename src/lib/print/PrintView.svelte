@@ -37,7 +37,7 @@
         return {
           title: rows[0].getBoundingClientRect().height,
           items: rows.slice(1).map((r) => r.getBoundingClientRect().height),
-          levels: c.sections[si].items.map((i) => i.level ?? 0),
+          levels: c.sections[si].items.map((i) => (i.type === 'bullet' ? 1 : 0)),
           border: parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth),
           keepTogether: c.sections[si].style === 'emergency',
         }

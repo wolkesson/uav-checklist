@@ -24,7 +24,8 @@ try {
     await new Promise((r) => setTimeout(r, 250))
   }
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {})
-  const ctx = await browser.newContext({ acceptDownloads: true })
+  // Reduced motion: rows move instantly instead of sliding, so positions are stable to measure.
+  const ctx = await browser.newContext({ acceptDownloads: true, reducedMotion: 'reduce' })
   await ctx.route(`${BASE}**`, async (route) => {
     const r = await route.fetch()
     await route.fulfill({ response: r, headers: { ...r.headers(), 'content-security-policy': csp } })
@@ -67,14 +68,82 @@ try {
   await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
   await page.locator('.logo-pick img').waitFor({ timeout: 5000 }).catch(() => fail('re-uploading the logo failed'))
 
-  // Editor: icon toggles report their state; critical toggles on and off.
-  const critical = page.getByRole('button', { name: 'Critical item (never skip)' }).first()
-  if ((await critical.getAttribute('aria-pressed')) !== 'false') fail('critical toggle should start off')
-  await critical.click()
-  if ((await critical.getAttribute('aria-pressed')) !== 'true') fail('critical toggle did not turn on')
+  // Editor: an item is exactly one type, chosen in a dropdown.
+  const firstType = page.getByLabel('Item type').first()
+  if ((await firstType.inputValue()) !== 'normal') fail('new item should be Normal')
+  await firstType.selectOption('critical')
+  if ((await firstType.inputValue()) !== 'critical') fail('item type did not change to Critical')
+  await firstType.selectOption('normal')
   for (const name of ['Back to checklists', 'Run checklist', 'Add item', 'Add section', 'Delete item', 'Delete section']) {
     if (!(await page.getByRole('button', { name, exact: true }).count())) fail(`editor button "${name}" missing`)
   }
+
+  // Reordering items: drag, keyboard and the tap menu (no arrows any more).
+  const texts = page.locator('.item .text')
+  await texts.first().fill('A')
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await texts.nth(1).fill('B')
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await texts.nth(2).fill('C')
+  const order = async () => (await texts.evaluateAll((els) => els.map((e) => e.value))).join('')
+  if (await page.getByRole('button', { name: /^Move item (up|down)$/ }).count()) fail('item arrow buttons should be gone')
+  const handles = page.locator('.item .handle button')
+
+  await handles.nth(0).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await order()) !== 'BAC') fail(`keyboard reorder: expected BAC, got ${await order()}`)
+
+  const from = await handles.nth(2).boundingBox() // drag C to the top
+  const to = await handles.nth(0).boundingBox()
+  await page.mouse.move(from.x + 20, from.y + 20)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(from.x + 20, from.y + 20 + ((to.y - 15 - from.y) * i) / 10)
+  await page.mouse.up()
+  if ((await order()) !== 'CBA') fail(`drag reorder: expected CBA, got ${await order()}`)
+
+  await handles.nth(0).click() // tap without dragging opens the move menu
+  await page.getByRole('button', { name: 'Move down', exact: true }).click()
+  if ((await order()) !== 'BCA') fail(`menu reorder: expected BCA, got ${await order()}`)
+
+  // Bullets move with their parent: make C a bullet under B, then move B down past A.
+  await page.getByLabel('Item type').nth(1).selectOption('bullet')
+  await handles.nth(0).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await order()) !== 'ABC') fail(`group move: expected ABC (B kept its bullet C), got ${await order()}`)
+  if ((await page.getByLabel('Item type').nth(2).inputValue()) !== 'bullet') fail('C is no longer a bullet after the group move')
+  // Dragging A to the bottom lands after the whole B group, never between B and its bullet.
+  const a = await handles.nth(0).boundingBox()
+  const last = await handles.nth(2).boundingBox()
+  await page.mouse.move(a.x + 20, a.y + 20)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + 20, a.y + 20 + ((last.y + 40 - a.y) * i) / 10)
+  await page.mouse.up()
+  if ((await order()) !== 'BCA') fail(`drag past a group: expected BCA, got ${await order()}`)
+
+  // Moving items between sections: keyboard at the edge of a section, and dragging.
+  await page.getByRole('button', { name: 'Add section' }).click()
+  const sec = (n) => page.locator('.section').nth(n)
+  const textsOf = async (n) => (await sec(n).locator('.item .text').evaluateAll((els) => els.map((e) => e.value || '_'))).join('')
+  const dragTo = async (handle, y) => {
+    const h = await handle.boundingBox()
+    await page.mouse.move(h.x + 20, h.y + 20)
+    await page.mouse.down()
+    for (let i = 1; i <= 12; i++) await page.mouse.move(h.x + 20, h.y + 20 + ((y - h.y - 20) * i) / 12)
+    await page.mouse.up()
+  }
+  // A is the last item of section 1: Arrow Down moves it to the top of section 2.
+  await sec(0).locator('.item .handle button').nth(2).focus()
+  await page.keyboard.press('ArrowDown')
+  if ((await textsOf(0)) !== 'BC' || (await textsOf(1)) !== 'A_') fail(`keyboard to next section: got ${await textsOf(0)} / ${await textsOf(1)}`)
+  // Drag B with its bullet C to the end of section 2.
+  const lastRow = await sec(1).locator('.item').last().boundingBox()
+  await dragTo(sec(0).locator('.item .handle button').first(), lastRow.y + lastRow.height + 2)
+  if ((await textsOf(0)) !== '' || (await textsOf(1)) !== 'A_BC') fail(`drag group to other section: got ${await textsOf(0)} / ${await textsOf(1)}`)
+  if ((await sec(1).getByLabel('Item type').nth(3).inputValue()) !== 'bullet') fail('C lost its bullet type when moved between sections')
+  // Drag A into the now empty section 1.
+  const empty = await sec(0).locator('.items').boundingBox()
+  await dragTo(sec(1).locator('.item .handle button').first(), empty.y + empty.height / 2)
+  if ((await textsOf(0)) !== 'A' || (await textsOf(1)) !== '_BC') fail(`drag into empty section: got ${await textsOf(0)} / ${await textsOf(1)}`)
 
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
@@ -96,7 +165,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, logo upload, print preview, Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }
