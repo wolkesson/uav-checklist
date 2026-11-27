@@ -21,12 +21,14 @@
     value,
     options,
     label,
+    disabled = false,
     onchange,
   }: {
     value: T
     options: SwatchOption<T>[]
     /** Accessible name, e.g. "Box style". */
     label: string
+    disabled?: boolean
     onchange: (value: T) => void
   } = $props()
 
@@ -79,6 +81,7 @@
     type="button"
     class="trigger"
     bind:this={button}
+    {disabled}
     aria-haspopup="listbox"
     aria-expanded={open}
     aria-controls={`${uid}-list`}

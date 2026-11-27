@@ -172,9 +172,30 @@ try {
   await dragTo(sec(1).locator('.item .handle button').first(), empty.y + empty.height / 2)
   if ((await textsOf(0)) !== 'A' || (await textsOf(1)) !== '_BC') fail(`drag into empty section: got ${await textsOf(0)} / ${await textsOf(1)}`)
 
+  // Revision: a new checklist is a draft; version/date can be corrected (and the date is then pinned);
+  // Release asks first and locks everything; New draft unlocks with the next version.
+  const revLine = page.getByRole('group', { name: 'Revision' })
+  if (!(await revLine.textContent()).includes('Draft')) fail('a new checklist should be a draft')
+  await revLine.getByRole('button', { name: 'Edit version and date' }).click()
+  const revDialog = page.getByRole('dialog', { name: 'Edit version and date' })
+  await revDialog.getByRole('spinbutton', { name: 'Version' }).fill('12')
+  await revDialog.getByLabel('Date', { exact: true }).fill('2026-11-20')
+  await revDialog.getByRole('button', { name: 'Save' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Smoke test edited')
+  if (!(await revLine.textContent()).includes('v12 · 2026-11-20')) fail(`edited version/date not kept: ${await revLine.textContent()}`)
+  await revLine.getByRole('button', { name: 'Release' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Release v12' }).click()
+  if (!(await revLine.textContent()).includes('Released')) fail('Release did not release the checklist')
+  if (!(await page.getByLabel('Title', { exact: true }).isDisabled())) fail('a released checklist should be read-only')
+  if (await page.getByRole('button', { name: 'Add item' }).count()) fail('a released checklist should hide Add item')
+  await revLine.getByRole('button', { name: 'New draft' }).click()
+  if (!(await revLine.textContent()).includes('v13')) fail(`New draft should start v13: ${await revLine.textContent()}`)
+  if (await page.getByLabel('Title', { exact: true }).isDisabled()) fail('a new draft should be editable')
+
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
+  if (!(await page.locator('.sheet .page-header .draft').count())) fail('DRAFT missing from the printed header of a draft')
 
   if (!(await page.getByRole('button', { name: 'Print', exact: true }).count())) fail('Print button missing')
   // Export PDF downloads a real PDF directly (no print dialog).
@@ -203,7 +224,7 @@ try {
 
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (list icons, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }

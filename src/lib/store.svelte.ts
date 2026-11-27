@@ -1,3 +1,4 @@
+import { draftEdited } from './revision'
 import { newChecklist, type Checklist } from './model'
 import { LocalStorageRepository, type ChecklistRepository } from './storage'
 import sample from '../../samples/quadcopter-basic.json'
@@ -34,6 +35,8 @@ export function importChecklists(list: Checklist[]) {
   }
 }
 
+/** Call after every change to a checklist. A draft's revision date follows its edits. */
 export function touch(c: Checklist) {
   c.updatedAt = new Date().toISOString()
+  draftEdited(c)
 }

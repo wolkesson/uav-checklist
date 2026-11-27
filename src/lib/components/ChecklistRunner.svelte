@@ -20,7 +20,7 @@
 </div>
 
 <h1><Markup text={c.title} /></h1>
-{#if c.aircraft}<p class="muted">{c.aircraft} · rev {c.revision}</p>{/if}
+<p class="muted">{c.aircraft ? `${c.aircraft} · ` : ''}v{c.revision}{#if c.status !== 'released'} · <span class="draft-tag">DRAFT</span>{/if}</p>
 
 {#each c.sections as s (s.id)}
   <h2 class="sec-{s.style ?? 'normal'}"><Markup text={s.title} /></h2>
@@ -41,6 +41,7 @@
 {#if all.length && count === all.length}<p class="complete" role="status">Checklist complete.</p>{/if}
 
 <style>
+  .draft-tag { color: var(--draft-fg); font-weight: 700; }
   .bullet label { padding-left: 28px; }
   .abort:not(.done) .expected, .abort:not(.done) .text { color: #e04403; font-weight: 700; }
   h2.sec-info { color: #0090c8; }

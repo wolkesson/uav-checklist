@@ -11,6 +11,7 @@ import { bands } from './bands'
 import { geometry } from './geometry'
 import { layout, type MeasuredSection } from './layout'
 import { safeFilename } from '../io'
+import { isDraft, revisionText } from '../revision'
 
 const PT = 72 / 25.4 // points per mm
 const color = (hex: string): RGB => rgb(parseInt(hex.slice(0, 2), 16) / 255, parseInt(hex.slice(2, 4), 16) / 255, parseInt(hex.slice(4, 6), 16) / 255)
@@ -18,6 +19,7 @@ const BLACK = color('000000')
 const WHITE = color('FFFFFF')
 const SHADE = color('F2F2F2')
 const ABORT = color('E04403')
+const DRAFT_RED = color('C00000')
 const STYLE: Record<SectionStyle, { border: RGB; width: number; titleFill?: RGB }> = {
   normal: { border: BLACK, width: 0.5 },
   info: { border: color('00B0F0'), width: 2.25, titleFill: color('00B0F0') },
@@ -198,7 +200,8 @@ export async function buildPdf(c: Checklist): Promise<Uint8Array> {
   const logo = c.logo ? await embedLogo(doc, c.logo) : null
   const W = g.width * PT
   const H = g.height * PT
-  const rev = sanitize([c.revisionDate, `v${c.revision}`].filter(Boolean).join(', '), fonts.regular)
+  const rev = sanitize(revisionText(c), fonts.regular)
+  const draftMark = isDraft(c) ? 'DRAFT ' : ''
 
   pages.forEach((columns, pi) => {
     const page = doc.addPage([W, H])
@@ -213,7 +216,12 @@ export async function buildPdf(c: Checklist): Promise<Uint8Array> {
     }
     const title = wrap(parseMarkup(c.title), fonts, 12, (right - left) / 2, { bold: true })
     drawLines(page, title.slice(0, 1), 0, hMid + 6.9, 12, BLACK, 'right', (W + lineWidth(title[0] ?? [])) / 2)
-    drawLines(page, [[{ text: rev, font: fonts.regular, size: 10.5, rise: 0, width: fonts.regular.widthOfTextAtSize(rev, 10.5) }]], 0, hMid + 6, 10.5, BLACK, 'right', right)
+    const revWidth = fonts.regular.widthOfTextAtSize(rev, 10.5)
+    drawLines(page, [[{ text: rev, font: fonts.regular, size: 10.5, rise: 0, width: revWidth }]], 0, hMid + 6, 10.5, BLACK, 'right', right)
+    if (draftMark) {
+      const w = fonts.bold.widthOfTextAtSize(draftMark, 10.5)
+      drawLines(page, [[{ text: draftMark, font: fonts.bold, size: 10.5, rise: 0, width: w }]], 0, hMid + 6, 10.5, DRAFT_RED, 'right', right - revWidth)
+    }
 
     // Columns.
     const contentTop = H - g.contentTop * PT
