@@ -37,8 +37,8 @@ export const isBullet = (i: ChecklistItem) => i.type === 'bullet'
 export type SectionStyle = 'normal' | 'info' | 'emergency'
 export const SECTION_STYLES: { value: SectionStyle; label: string }[] = [
   { value: 'normal', label: 'Normal' },
-  { value: 'info', label: 'Info (blue)' },
-  { value: 'emergency', label: 'Emergency (red)' },
+  { value: 'info', label: 'Info' },
+  { value: 'emergency', label: 'Emergency' },
 ]
 
 export type PaperSize = 'A5' | 'A4' | 'Letter'

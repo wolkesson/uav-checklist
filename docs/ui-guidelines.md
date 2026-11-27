@@ -27,8 +27,19 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Small, easily redone edits (deleting one item while editing) need no confirmation.
 - Use `ConfirmDialog.svelte`. Never use the browser's `alert()`, `confirm()` or `prompt()`.
 
+## Menus and dropdowns
+- **Actions on an object that are used less often go in a "⋯" menu** (`MenuButton.svelte`, icon
+  `Ellipsis`), e.g. a section's *Move up*, *Move down* and *Delete section*. Destructive menu items
+  have a solid red background and still ask for confirmation when data would be lost.
+- **A choice that has a colour** (e.g. a section's box style) uses a dropdown button with a colour
+  square and the name (`SwatchSelect.svelte`): same height as other buttons, with a ▾ arrow.
+- Both work with the keyboard: Arrow keys move, Enter chooses, Escape closes and returns focus.
+- **Sections in the editor show their box colour**: Info sections a blue border and header strip,
+  Emergency sections red, Normal sections neutral, matching the printout.
+
 ## Reordering
-- Lists are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
+- Items are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
+  Sections are reordered from their "⋯" menu (Move up / Move down).
   The handle is shown as a plain grip icon without a button frame (it is a grip, not a button),
   but keeps a 40 px touch area and a visible focus ring for keyboard users.
 - Dragging must never be the only way (WCAG 2.2, 2.5.7). Every handle also supports:
@@ -68,6 +79,8 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Export PDF | `FileDown` (with text) |
   | Export Word | `FileText` (with text) |
   | Reset a run | `RotateCcw` |
+  | More actions (menu) | `Ellipsis` |
+  | Move up / down (in menus) | `ArrowUp` / `ArrowDown` |
   | Warning in dialogs | `TriangleAlert` |
 
 - **Mutually exclusive choices use a dropdown**, not separate toggles. Example: an item is exactly
