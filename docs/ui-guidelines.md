@@ -64,7 +64,7 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Delete | `Trash2` |
   | Reorder (drag handle) | `GripVertical` |
   | Add item / section | `Plus` (with text) |
-  | Choose logo | `ImageUp` (with text) |
+  | Upload / change logo | `ImageUp` (with text, in the logo upload area) |
   | Export PDF | `FileDown` (with text) |
   | Export Word | `FileText` (with text) |
   | Reset a run | `RotateCcw` |
