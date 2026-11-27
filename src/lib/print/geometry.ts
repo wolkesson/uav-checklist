@@ -21,3 +21,6 @@ export function geometry(p: PrintSettings) {
 }
 
 export const PX_PER_MM = 96 / 25.4
+
+/** Largest printed logo in mm (header, left); the editor preview uses the same box. */
+export const LOGO_MAX = { width: 40, height: 10 }

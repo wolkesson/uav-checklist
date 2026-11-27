@@ -10,7 +10,7 @@ import {
 import { DEFAULT_PRINT, type Checklist, type ChecklistSection, type SectionStyle } from '../model'
 import { parseMarkup } from '../markup'
 import { bands } from './bands'
-import { geometry } from './geometry'
+import { geometry, LOGO_MAX, PX_PER_MM } from './geometry'
 import { safeFilename } from '../io'
 
 const FONT = 'Arial'
@@ -125,8 +125,8 @@ async function header(c: Checklist, contentWidthMm: number): Promise<Header> {
   if (c.logo) {
     const { data, type } = dataUrlToBytes(c.logo)
     const { w, h } = await imageSize(c.logo)
-    const maxH = 10 * 3.7795 // 10 mm in px at 96 dpi
-    const maxW = 40 * 3.7795
+    const maxH = LOGO_MAX.height * PX_PER_MM
+    const maxW = LOGO_MAX.width * PX_PER_MM
     const scale = Math.min(maxH / h, maxW / w)
     logo = [new ImageRun({ type, data, transformation: { width: Math.round(w * scale), height: Math.round(h * scale) } })]
   }

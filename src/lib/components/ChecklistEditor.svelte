@@ -6,6 +6,7 @@
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
   import { plainText } from '../markup'
+  import { LOGO_MAX } from '../print/geometry'
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
 
@@ -13,6 +14,8 @@
     { checklist: Checklist; onDone: () => void; onRun: () => void; onPrint: () => void } = $props()
   let logoError = $state('')
   let logoInput = $state<HTMLInputElement>()
+  // The preview box is the printed logo box (LOGO_MAX) scaled up, so the logo keeps its printed proportions.
+  const LOGO_PREVIEW_SCALE = 5 // px per mm
   let sectionToDelete = $state<number | null>(null)
   let confirmOpen = $state(false)
 
@@ -67,17 +70,24 @@
   <div class="meta-head">
     <div class="logo-col">
       <span class="logo-label" id="logo-label">Logo (printed header)</span>
-      <button type="button" class="logo-drop" class:has-logo={!!c.logo} aria-labelledby="logo-label logo-action"
-        onclick={() => logoInput?.click()}>
+      <div class="logo-drop" class:has-logo={!!c.logo}
+        style:width="{LOGO_MAX.width * LOGO_PREVIEW_SCALE}px" style:height="{LOGO_MAX.height * LOGO_PREVIEW_SCALE}px">
+        <button type="button" class="logo-pick" aria-labelledby="logo-label logo-action" onclick={() => logoInput?.click()}>
+          {#if c.logo}
+            <img src={c.logo} alt="" />
+            <span class="logo-hint overlay" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to change</span>
+          {:else}
+            <span class="logo-hint" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to upload</span>
+          {/if}
+        </button>
         {#if c.logo}
-          <img src={c.logo} alt="" />
-          <span class="logo-hint overlay" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to change</span>
-        {:else}
-          <span class="logo-hint" id="logo-action"><ImageUp size={20} aria-hidden="true" />Click to upload</span>
+          <span class="logo-remove">
+            <IconButton icon={Trash2} label="Remove logo" variant="danger" tipAlign="end" onclick={() => { c.logo = undefined; touch(c) }} />
+          </span>
         {/if}
-      </button>
+      </div>
       <input bind:this={logoInput} type="file" accept="image/*" hidden onchange={onLogo} />
-      {#if c.logo}<IconButton icon={Trash2} label="Remove logo" variant="danger" onclick={() => { c.logo = undefined; touch(c) }} />{/if}
+      <span class="muted small">Shown at printed proportions ({LOGO_MAX.width} × {LOGO_MAX.height} mm max).</span>
     </div>
     <div class="meta-head-fields">
       <label>Title <input bind:value={c.title} /></label>
@@ -146,21 +156,31 @@
   .meta-head { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; align-items: start; }
   .meta-head-fields { display: grid; gap: 8px; }
   .logo-col { display: grid; gap: 4px; justify-items: start; font-size: .9rem; }
+  /* Box = printed logo box; border sits outside it so the image scale matches print. */
   .logo-drop {
-    position: relative; width: 200px; height: 96px; padding: 8px; overflow: hidden;
-    display: grid; place-items: center; border: 2px dashed var(--border); border-radius: 8px; background: var(--card);
+    position: relative; box-sizing: content-box;
+    border: 2px dashed var(--border); border-radius: 6px; background: var(--card);
   }
-  .logo-drop:hover, .logo-drop:focus-visible { border-color: var(--accent); }
-  .logo-drop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .logo-drop.has-logo { border-style: solid; background: #fff; }
-  .logo-drop img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .logo-drop:hover, .logo-drop:focus-within { border-color: var(--accent); }
+  .logo-pick {
+    position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 4px;
+    background: transparent; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .has-logo .logo-pick { justify-content: flex-start; } /* left-aligned, as in the printed header */
+  .logo-pick:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .logo-pick img { max-width: 100%; max-height: 100%; display: block; }
   .logo-hint { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
   .logo-hint.overlay {
-    position: absolute; inset: 0; justify-content: center; background: rgb(17 24 39 / .75); color: #fff;
+    position: absolute; inset: 0; padding-left: 10px; justify-content: flex-start; background: rgb(17 24 39 / .75); color: #fff;
     opacity: 0; transition: opacity .15s;
   }
-  .logo-drop:hover .overlay, .logo-drop:focus-visible .overlay { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .logo-hint.overlay { transition: none; } }
+  .logo-remove { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); opacity: 0; transition: opacity .15s; }
+  .logo-drop:hover .overlay, .logo-drop:focus-within .overlay,
+  .logo-drop:hover .logo-remove, .logo-drop:focus-within .logo-remove { opacity: 1; }
+  /* No hover on touch screens: keep the remove button visible. */
+  @media (hover: none) { .logo-remove { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .logo-hint.overlay, .logo-remove { transition: none; } }
   @media (max-width: 520px) { .meta-head { grid-template-columns: minmax(0, 1fr); } }
   .icon-text { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
   .text-btn { min-height: 40px; }
