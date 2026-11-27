@@ -74,7 +74,7 @@ try {
   await firstType.selectOption('critical')
   if ((await firstType.inputValue()) !== 'critical') fail('item type did not change to Critical')
   await firstType.selectOption('normal')
-  for (const name of ['Back to checklists', 'Run checklist', 'Add item', 'Add section', 'Delete item', 'Delete section']) {
+  for (const name of ['Back to checklists', 'Run checklist', 'Add item', 'Add section', 'Delete item', 'Section actions']) {
     if (!(await page.getByRole('button', { name, exact: true }).count())) fail(`editor button "${name}" missing`)
   }
 
@@ -123,6 +123,33 @@ try {
   // Moving items between sections: keyboard at the edge of a section, and dragging.
   await page.getByRole('button', { name: 'Add section' }).click()
   const sec = (n) => page.locator('.section').nth(n)
+
+  // Box style dropdown (keyboard): choose Emergency; the section gets its colour class.
+  const styleBtn = sec(1).getByRole('button', { name: /^Box style:/ })
+  await styleBtn.focus()
+  await page.keyboard.press('ArrowDown') // opens the list on the current option
+  await page.keyboard.press('End')
+  await page.keyboard.press('Enter')
+  if ((await styleBtn.getAttribute('aria-label')) !== 'Box style: Emergency') fail(`box style dropdown: got ${await styleBtn.getAttribute('aria-label')}`)
+  if (!(await sec(1).evaluate((e) => e.classList.contains('style-emergency')))) fail('section did not take the emergency colour')
+  // Box style dropdown (mouse): back to Normal.
+  await styleBtn.click()
+  await page.getByRole('listbox', { name: 'Box style' }).getByRole('option', { name: 'Normal' }).click()
+  if ((await styleBtn.getAttribute('aria-label')) !== 'Box style: Normal') fail('box style dropdown did not change back to Normal')
+
+  // Section menu: no drag handle or delete button on sections; Move up/down via the menu.
+  if (await sec(0).locator('.section-head .handle').count()) fail('sections should not have a drag handle')
+  const titleOf = async (n) => sec(n).getByLabel('Section title').inputValue()
+  await sec(0).getByLabel('Section title').fill('First')
+  await sec(1).getByLabel('Section title').fill('Second')
+  await sec(0).getByRole('button', { name: 'Section actions' }).click()
+  if (!(await page.getByRole('menuitem', { name: 'Move up' }).isDisabled())) fail('Move up should be disabled for the first section')
+  await page.getByRole('menuitem', { name: 'Move down' }).click()
+  if ((await titleOf(0)) !== 'Second' || (await titleOf(1)) !== 'First') fail('section menu Move down did not move the section')
+  // Keyboard: the menu button keeps focus after the move; Arrow Down opens the menu.
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter') // first enabled item: Move up
+  if ((await titleOf(0)) !== 'First') fail('section menu by keyboard did not move the section up')
   const textsOf = async (n) => (await sec(n).locator('.item .text').evaluateAll((els) => els.map((e) => e.value || '_'))).join('')
   const dragTo = async (handle, y) => {
     const h = await handle.boundingBox()

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { ArrowLeft, ImageUp, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
-  import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType } from '../model'
+  import { tick } from 'svelte'
+  import { ArrowDown, ArrowLeft, ArrowUp, ImageUp, Play, Plus, Printer, Trash2 } from '@lucide/svelte'
+  import { ITEM_TYPES, itemType, newItem, newSection, SECTION_STYLES, type Checklist, type ChecklistItem, type ItemType, type SectionStyle } from '../model'
   import { touch } from '../store.svelte'
   import { imageFileToPng } from '../image'
   import { plainText } from '../markup'
@@ -8,6 +9,8 @@
   import ConfirmDialog from './ConfirmDialog.svelte'
   import IconButton from './IconButton.svelte'
   import DragHandle, { type MoveFrom, type MoveTo } from './DragHandle.svelte'
+  import SwatchSelect from './SwatchSelect.svelte'
+  import MenuButton from './MenuButton.svelte'
   import { moveBlock } from '../reorder'
 
   let { checklist: c, onDone, onRun, onPrint }:
@@ -30,8 +33,20 @@
     }
   }
 
-  function moveSection(from: MoveFrom, to: MoveTo) {
-    if (moveBlock(c.sections, [from.start, from.end], c.sections, to.at)) touch(c)
+  // Box style options with the colour the box gets when printed (and in the editor).
+  const STYLE_COLOR: Record<SectionStyle, string | undefined> = {
+    normal: undefined, info: 'var(--box-info)', emergency: 'var(--box-emergency)',
+  }
+  const styleOptions = SECTION_STYLES.map((st) => ({ ...st, color: STYLE_COLOR[st.value] }))
+
+  /** Moves a section one step up (-1) or down (+1) and keeps focus on its menu button. */
+  async function moveSectionBy(si: number, d: -1 | 1) {
+    const to = si + d
+    if (to < 0 || to >= c.sections.length) return
+    const id = c.sections[si].id
+    if (moveBlock(c.sections, [si, si + 1], c.sections, d < 0 ? to : to + 1)) touch(c)
+    await tick()
+    document.querySelector<HTMLButtonElement>(`[data-menu-id="${CSS.escape(id)}"]`)?.focus()
   }
 
   /** Moves items (an item with its bullets, or one bullet) within or between sections. */
@@ -115,16 +130,18 @@
     <strong>Critical</strong> must never be skipped; <strong>Abort</strong> is a highlighted row when printed.</p>
 </div>
 
-<div class="sections" data-sortable-list data-group="sections" data-list-id="sections" data-list-label="the checklist">
+<div class="sections">
 {#each c.sections as s, si (s.id)}
-  <section class="section" data-sortable-item data-flip-key={s.id} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
+  <section class="section style-{s.style ?? 'normal'}" data-flip-key={s.id} aria-label={`Section ${plainText(s.title)}`} oninput={() => touch(c)} onchange={() => touch(c)}>
     <div class="section-head">
-      <DragHandle id={s.id} group="sections" label="section" onmove={moveSection} />
       <input class="section-title" bind:value={s.title} aria-label="Section title" />
-      <select bind:value={s.style} aria-label="Box style when printed">
-        {#each SECTION_STYLES as st (st.value)}<option value={st.value}>{st.label}</option>{/each}
-      </select>
-      <IconButton icon={Trash2} label="Delete section" variant="danger" tipAlign="end" onclick={() => deleteSection(si)} />
+      <SwatchSelect label="Box style" value={s.style ?? 'normal'} options={styleOptions}
+        onchange={(v) => { s.style = v; touch(c) }} />
+      <MenuButton label="Section actions" id={s.id} items={[
+        { label: 'Move up', icon: ArrowUp, disabled: si === 0, onselect: () => moveSectionBy(si, -1) },
+        { label: 'Move down', icon: ArrowDown, disabled: si === c.sections.length - 1, onselect: () => moveSectionBy(si, 1) },
+        { label: 'Delete section', icon: Trash2, danger: true, onselect: () => deleteSection(si) },
+      ]} />
     </div>
 
     <div class="items" data-sortable-list data-group="items" data-list-id={s.id} data-list-label={`section ${plainText(s.title)}`}>
@@ -202,9 +219,17 @@
 
   .sections { display: grid; gap: 12px; margin-bottom: 12px; }
   .section { display: grid; gap: 8px; margin: 0; }
+  /* The section takes the colour of its printed box: coloured border and header strip. */
+  .section.style-info { border: 2px solid var(--box-info); }
+  .section.style-emergency { border: 2px solid var(--box-emergency); }
+  .section.style-info .section-head, .section.style-emergency .section-head {
+    margin: -11px -11px 0; padding: 10px 10px 8px; border-radius: 6px 6px 0 0;
+  }
+  .section.style-info .section-head { background: var(--box-info-tint); }
+  .section.style-emergency .section-head { background: var(--box-emergency-tint); }
   /* An empty section still has room to drop items into. */
   .items { display: grid; gap: 6px; min-height: 12px; }
-  .section-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 40px; gap: 6px; align-items: center; }
+  .section-head { display: grid; grid-template-columns: minmax(0, 1fr) auto 40px; gap: 6px; align-items: center; }
   .section-title { font-weight: 600; }
   .row-actions { display: flex; gap: 4px; }
 
@@ -232,8 +257,12 @@
       grid-template-columns: 40px minmax(0, 1fr) 112px 40px;
       grid-template-areas: 'handle text text text' '. expected type actions';
     }
-    .section-head { grid-template-columns: 40px minmax(0, 1fr) 40px; }
-    .section-head select { grid-column: 2; }
+  }
+  @media (max-width: 520px) {
+    /* Title on its own line; style and menu below it, right-aligned. */
+    .section-head { grid-template-columns: minmax(0, 1fr) auto 40px; }
+    .section-title { grid-column: 1 / -1; }
+    .section-head :global(.swatch-select) { grid-column: 2; }
   }
   @media (max-width: 440px) {
     .item {
