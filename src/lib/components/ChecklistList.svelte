@@ -46,7 +46,7 @@
       <li class="card">
         <div>
           <strong><Markup text={c.title} /></strong>
-          <div class="muted small">{c.aircraft || '—'} · rev {c.revision} · {c.sections.reduce((n, s) => n + s.items.length, 0)} items</div>
+          <div class="muted small">{c.aircraft || '—'} · v{c.revision}{#if c.status !== 'released'} · <span class="draft-tag">Draft</span>{/if} · {c.sections.reduce((n, s) => n + s.items.length, 0)} items</div>
         </div>
         <div class="actions">
           <IconButton icon={Play} label="Run checklist" variant="primary" onclick={() => onRun(c.id)} />
@@ -67,3 +67,7 @@
   confirmLabel="Delete checklist"
   onconfirm={() => toDelete && removeChecklist(toDelete.id)}
 />
+
+<style>
+  .draft-tag { color: var(--draft-fg); font-weight: 700; }
+</style>

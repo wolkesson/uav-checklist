@@ -2,7 +2,7 @@
  * Checklist data model. This is the contract for storage and for import/export
  * files, so changes must bump SCHEMA_VERSION and add a migration in migrate().
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 export const FILE_KIND = 'uav-checklist'
 
 export type ItemKind = 'check' | 'note' | 'value'
@@ -69,8 +69,18 @@ export interface Checklist {
   aircraft?: string
   description?: string
   revision: number
-  /** Date shown next to the revision in the printed header, YYYY-MM-DD. */
+  /**
+   * Date shown next to the revision in the printed header, YYYY-MM-DD. Set automatically:
+   * a draft's date follows its edits; releasing fixes it to the release day.
+   */
   revisionDate?: string
+  /**
+   * Draft: editable work in progress, marked DRAFT when printed.
+   * Released: locked; changes need a new draft (next revision). See revision.ts.
+   */
+  status?: 'draft' | 'released'
+  /** The date was set by hand: it no longer follows edits and is kept on release. */
+  revisionDatePinned?: boolean
   /** Footer text on every printed page, e.g. aircraft and app versions it applies to. */
   effectivity?: string
   /** Company logo for the printed header, as a PNG data URL. Travels with exported files. */
@@ -102,6 +112,7 @@ export const newChecklist = (title = 'New checklist'): Checklist => ({
   description: '',
   revision: 1,
   revisionDate: new Date().toISOString().slice(0, 10),
+  status: 'draft',
   effectivity: '',
   print: { ...DEFAULT_PRINT },
   updatedAt: new Date().toISOString(),
@@ -130,6 +141,14 @@ export function migrate(data: { schemaVersion: number; checklists: unknown[] }):
   // v1 -> v2 only added optional fields (style, level, critical, highlight, revisionDate,
   // effectivity, logo, print), so v1 data is already valid v2 data.
   if (data.schemaVersion < 3) data.checklists.forEach(itemFlagsToType)
+  // v3 -> v4: checklists get a status; existing ones count as released (locked until a new draft).
+  if (data.schemaVersion < 4) {
+    for (const c of data.checklists as { status?: string; revisionDate?: string; updatedAt?: string }[]) {
+      c.status ??= 'released'
+      // A released version needs a date; use the last change if none was set.
+      if (!c.revisionDate && c.updatedAt) c.revisionDate = c.updatedAt.slice(0, 10)
+    }
+  }
   data.checklists.forEach(assertChecklist)
   return data.checklists as Checklist[]
 }

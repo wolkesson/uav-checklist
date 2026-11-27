@@ -27,6 +27,15 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - Small, easily redone edits (deleting one item while editing) need no confirmation.
 - Use `ConfirmDialog.svelte`. Never use the browser's `alert()`, `confirm()` or `prompt()`.
 
+## Revisions (draft and released)
+- A checklist is a **Draft** (editable, amber) or **Released** (locked, green). The status, version
+  and date sit on one line under the title, the height of an input.
+- Draft: one button, **Release** (asks for confirmation), and a "⋯" menu with *Edit version and
+  date…*. The date follows the latest edit unless it was set by hand.
+- Released: every field is read-only and edit controls (drag handles, delete, add, menus) are
+  hidden. One button, **New draft**, starts the next version.
+- Drafts can be run and printed; printouts, PDF and Word show **DRAFT** next to the date.
+
 ## Menus and dropdowns
 - **Actions on an object that are used less often go in a "⋯" menu** (`MenuButton.svelte`, icon
   `Ellipsis`), e.g. a section's *Move up*, *Move down* and *Delete section*. Destructive menu items

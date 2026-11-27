@@ -12,6 +12,7 @@ import { parseMarkup } from '../markup'
 import { bands } from './bands'
 import { geometry, LOGO_MAX, PX_PER_MM } from './geometry'
 import { safeFilename } from '../io'
+import { isDraft, revisionText } from '../revision'
 
 const FONT = 'Arial'
 const TITLE_FONT = 'Arial Black'
@@ -143,8 +144,10 @@ async function header(c: Checklist, contentWidthMm: number): Promise<Header> {
       rows: [new TableRow({ children: [
         cell(side, [new Paragraph({ spacing: tight, children: logo })]),
         cell(middle, [new Paragraph({ spacing: tight, alignment: AlignmentType.CENTER, children: runs(c.title, { font: TITLE_FONT, size: 24 }) })]),
-        cell(side, [new Paragraph({ spacing: tight, alignment: AlignmentType.RIGHT,
-          children: runs([c.revisionDate, `v${c.revision}`].filter(Boolean).join(', '), { size: 21 }) })]),
+        cell(side, [new Paragraph({ spacing: tight, alignment: AlignmentType.RIGHT, children: [
+          ...(isDraft(c) ? [new TextRun({ text: 'DRAFT ', font: FONT, size: 21, bold: true, color: 'C00000' })] : []),
+          ...runs(revisionText(c), { size: 21 }),
+        ] })]),
       ] })],
     })],
   })
