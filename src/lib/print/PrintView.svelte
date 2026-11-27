@@ -7,6 +7,8 @@
   import SectionBox from './SectionBox.svelte'
   import PageHeader from './PageHeader.svelte'
   import Markup from '../components/Markup.svelte'
+  import IconButton from '../components/IconButton.svelte'
+  import { ArrowLeft, FileDown, FileText, Printer } from '@lucide/svelte'
 
   let { checklist: c, onDone }: { checklist: Checklist; onDone: () => void } = $props()
 
@@ -15,7 +17,8 @@
 
   let measureEl: HTMLDivElement | undefined = $state()
   let pages = $state<Page[]>([])
-  let exporting = $state(false)
+  /** Which export is running, if any. */
+  let exporting = $state<'' | 'pdf' | 'word'>('')
   let previewWidth = $state(0)
   // Shrink the on-screen preview to fit narrow screens; printing always uses real size.
   const zoom = $derived(previewWidth ? Math.min(1, (previewWidth - 4) / (g.width * PX_PER_MM)) : 1)
@@ -60,17 +63,19 @@
     touch(c)
   }
 
-  async function exportWord() {
-    exporting = true
+  // Both exporters are loaded only when used, so pdf-lib and docx stay out of the main bundle.
+  async function exportFile(kind: 'pdf' | 'word') {
+    exporting = kind
     error = ''
     try {
-      const { exportDocx } = await import('./docx')
-      await exportDocx($state.snapshot(c) as Checklist)
+      const snapshot = $state.snapshot(c) as Checklist
+      if (kind === 'pdf') await (await import('./pdf')).exportPdf(snapshot)
+      else await (await import('./docx')).exportDocx(snapshot)
     } catch (e) {
       console.error(e)
-      error = 'Word export failed: ' + (e as Error).message
+      error = `${kind === 'pdf' ? 'PDF' : 'Word'} export failed: ${(e as Error).message}`
     } finally {
-      exporting = false
+      exporting = ''
     }
   }
 
@@ -80,7 +85,7 @@
 <svelte:head>{@html pageCss}</svelte:head>
 
 <div class="toolbar no-print">
-  <button onclick={onDone}>← Back</button>
+  <IconButton icon={ArrowLeft} label="Back to checklists" onclick={onDone} />
   <label>Paper
     <select value={settings.paper} onchange={(e) => setPaper(e.currentTarget.value as PaperSize)}>
       {#each Object.keys(PAPER_SIZES) as p (p)}<option value={p}>{p}</option>{/each}
@@ -91,13 +96,16 @@
       <option value={1}>1</option><option value={2}>2</option>
     </select>
   </label>
-  <button class="primary" onclick={() => window.print()}>Print / Save as PDF</button>
-  <button onclick={exportWord} disabled={exporting}>{exporting ? 'Exporting…' : 'Export Word'}</button>
+  <div class="actions">
+    <button class="icon-text primary" onclick={() => window.print()}><Printer size={20} aria-hidden="true" />Print</button>
+    <button class="icon-text" onclick={() => exportFile('pdf')} disabled={!!exporting}>
+      <FileDown size={20} aria-hidden="true" />{exporting === 'pdf' ? 'Exporting…' : 'Export PDF'}
+    </button>
+    <button class="icon-text" onclick={() => exportFile('word')} disabled={!!exporting}>
+      <FileText size={20} aria-hidden="true" />{exporting === 'word' ? 'Exporting…' : 'Export Word'}
+    </button>
+  </div>
 </div>
-<p class="hint no-print muted small">
-  For PDF, choose <strong>Save as PDF</strong> as the printer. Keep margins on <em>Default</em> and scale at 100 %.
-  {pages.length} page{pages.length === 1 ? '' : 's'}, {settings.paper}.
-</p>
 {#if error}<p class="error no-print" role="alert">{error}</p>{/if}
 
 <!-- Off-screen copy used only to measure row heights at the real column width. -->
@@ -131,6 +139,8 @@
 
 <style>
   .toolbar label { display: flex; gap: 6px; align-items: center; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .icon-text { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
   select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px; min-height: 36px; }
   .measure { position: absolute; left: -10000px; top: 0; visibility: hidden; }
   .sheets { overflow-x: auto; padding: 8px 0; }

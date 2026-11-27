@@ -59,12 +59,15 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Back | `ArrowLeft` |
   | Run | `Play` |
   | Edit | `SquarePen` |
-  | Print / PDF / Word | `Printer` |
+  | Print / print page | `Printer` |
   | Export file | `Share` |
   | Delete | `Trash2` |
   | Reorder (drag handle) | `GripVertical` |
   | Add item / section | `Plus` (with text) |
   | Upload / change logo | `ImageUp` (with text, in the logo upload area) |
+  | Export PDF | `FileDown` (with text) |
+  | Export Word | `FileText` (with text) |
+  | Reset a run | `RotateCcw` |
   | Warning in dialogs | `TriangleAlert` |
 
 - **Mutually exclusive choices use a dropdown**, not separate toggles. Example: an item is exactly
