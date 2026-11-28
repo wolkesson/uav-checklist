@@ -38,9 +38,9 @@
 
   // Box style options with the colour the box gets when printed (and in the editor).
   const STYLE_COLOR: Record<SectionStyle, string | undefined> = {
-    normal: undefined, info: 'var(--box-info)', emergency: 'var(--box-emergency)',
+    normal: undefined, info: 'var(--box-info)', green: 'var(--box-green)', emergency: 'var(--box-emergency)', notes: undefined,
   }
-  const styleOptions = SECTION_STYLES.map((st) => ({ ...st, color: STYLE_COLOR[st.value] }))
+  const styleOptions = SECTION_STYLES.map((st) => ({ ...st, color: STYLE_COLOR[st.value], dashed: st.value === 'notes' }))
 
   /** Moves a section one step up (-1) or down (+1) and keeps focus on its menu button. */
   async function moveSectionBy(si: number, d: -1 | 1) {
@@ -272,11 +272,15 @@
   .section { display: grid; gap: 8px; margin: 0; }
   /* The section takes the colour of its printed box: coloured border and header strip. */
   .section.style-info { border: 2px solid var(--box-info); }
+  .section.style-green { border: 2px solid var(--box-green); }
   .section.style-emergency { border: 2px solid var(--box-emergency); }
-  .section.style-info .section-head, .section.style-emergency .section-head {
+  /* Notes print without a box: dashed outline, no card background. */
+  .section.style-notes { border: 2px dashed var(--border); background: none; }
+  .section.style-info .section-head, .section.style-green .section-head, .section.style-emergency .section-head {
     margin: -11px -11px 0; padding: 10px 10px 8px; border-radius: 6px 6px 0 0;
   }
   .section.style-info .section-head { background: var(--box-info-tint); }
+  .section.style-green .section-head { background: var(--box-green-tint); }
   .section.style-emergency .section-head { background: var(--box-emergency-tint); }
   /* An empty section still has room to drop items into. */
   .items { display: grid; gap: 6px; min-height: 12px; }
@@ -299,6 +303,7 @@
   .item.type-bullet .text { margin-left: 24px; width: calc(100% - 24px); }
   /* The type is also visible at a glance: coloured border on the dropdown. */
   .item.type-critical .type { border-color: var(--crit); color: var(--crit); font-weight: 600; }
+  .item.type-caution .type { border-color: var(--caution); color: var(--caution); font-weight: 600; }
   .item.type-abort .type { border-color: var(--abort); color: var(--abort); font-weight: 600; }
   .item.type-bullet .type { border-color: var(--accent); color: var(--accent); }
   .item + .item { padding-top: 6px; border-top: 1px dashed var(--border); }

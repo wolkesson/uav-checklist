@@ -163,7 +163,8 @@ try {
   const styleBtn = sec(1).getByRole('button', { name: /^Box style:/ })
   await styleBtn.focus()
   await page.keyboard.press('ArrowDown') // opens the list on the current option
-  await page.keyboard.press('End')
+  await page.keyboard.press('End') // Notes
+  await page.keyboard.press('ArrowUp') // Emergency
   await page.keyboard.press('Enter')
   if ((await styleBtn.getAttribute('aria-label')) !== 'Box style: Emergency') fail(`box style dropdown: got ${await styleBtn.getAttribute('aria-label')}`)
   if (!(await sec(1).evaluate((e) => e.classList.contains('style-emergency')))) fail('section did not take the emergency colour')
@@ -227,10 +228,18 @@ try {
   if (!(await revLine.textContent()).includes('v13')) fail(`New draft should start v13: ${await revLine.textContent()}`)
   if (await page.getByLabel('Title', { exact: true }).isDisabled()) fail('a new draft should be editable')
 
+  // Caution rows and Notes sections: shown in print, but no tick boxes when running (checked at the end).
+  await sec(0).getByLabel('Item type').first().selectOption('caution')
+  await sec(1).getByRole('button', { name: /^Box style/ }).click()
+  await page.getByRole('option', { name: 'Notes' }).click()
+  if (!(await sec(1).getByRole('button', { name: 'Box style: Notes' }).count())) fail('section style did not change to Notes')
+
   await page.getByRole('button', { name: 'Print or export PDF / Word' }).click()
   await page.locator('.sheet').first().waitFor({ timeout: 5000 }).catch(() => fail('print preview rendered no pages'))
   if (!(await page.locator('.sheet .page-header img').count())) fail('logo missing from printed header')
   if (!(await page.locator('.sheet .page-header .draft').count())) fail('DRAFT missing from the printed header of a draft')
+  if (!(await page.locator('.sheet .cl-row.caution').count())) fail('caution row not highlighted in print')
+  if (!(await page.locator('.sheet .box.notes').count())) fail('notes section not printed without a box')
 
   if (!(await page.getByRole('button', { name: 'Print', exact: true }).count())) fail('Print button missing')
   // Export PDF downloads a real PDF directly (no print dialog).
@@ -257,9 +266,17 @@ try {
   await page.getByRole('button', { name: 'New checklist' }).waitFor({ timeout: 3000 }).catch(() => fail('Back from edit did not return to the list'))
   if (!page.url().startsWith(BASE)) fail(`Back left the app: ${page.url()}`)
 
+  // Run: the caution row (A) and the Notes section (_, B, C) have no tick boxes, so nothing is to do.
+  await page.locator('.card').first().getByRole('button', { name: 'Run checklist' }).click()
+  const ticks = await page.locator('.run input[type=checkbox]').count()
+  if (ticks !== 0) fail(`caution rows and notes sections should have no tick boxes, found ${ticks}`)
+  if (!(await page.locator('.run .caution').count())) fail('caution row not shown when running')
+  if (!(await page.locator('.progress').textContent()).startsWith('0 / 0')) fail(`progress should count steps only: ${await page.locator('.progress').textContent()}`)
+  await page.getByRole('button', { name: 'Back to checklists' }).click()
+
   if (errors.length) fail('browser errors:\n  ' + errors.join('\n  '))
   await browser.close()
-  if (!process.exitCode) console.log('e2e smoke test passed (version label and previews list, list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
+  if (!process.exitCode) console.log('e2e smoke test passed (version label and previews list, list icons and menu, tap to run, delete confirmation, editor icons, revision draft/release, item type, caution rows and notes sections, reorder by drag/keyboard/menu with bullet groups and across sections, logo upload, print preview, PDF and Word export, Back button, CSP applied)')
 } finally {
   server.kill()
 }

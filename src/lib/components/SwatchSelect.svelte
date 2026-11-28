@@ -4,6 +4,8 @@
     label: string
     /** CSS colour of the square; omit for an outlined (neutral) square. */
     color?: string
+    /** Dashed outline instead of a square, e.g. for "no box". */
+    dashed?: boolean
   }
 
 </script>
@@ -89,7 +91,7 @@
     onclick={() => (open ? close() : show())}
     onkeydown={onButtonKey}
   >
-    <span class="swatch" class:outlined={!current.color} style:--swatch={current.color} aria-hidden="true"></span>
+    <span class="swatch" class:outlined={!current.color} class:dashed={current.dashed} style:--swatch={current.color} aria-hidden="true"></span>
     <span class="name">{current.label}</span>
     <ChevronDown size={18} aria-hidden="true" />
   </button>
@@ -115,7 +117,7 @@
           onclick={() => choose(i)}
           onkeydown={() => {}}
         >
-          <span class="swatch" class:outlined={!o.color} style:--swatch={o.color} aria-hidden="true"></span>
+          <span class="swatch" class:outlined={!o.color} class:dashed={o.dashed} style:--swatch={o.color} aria-hidden="true"></span>
           <span class="name">{o.label}</span>
           {#if o.value === value}<Check size={18} aria-hidden="true" />{/if}
         </li>
@@ -136,6 +138,7 @@
     background: var(--swatch); border: 1px solid var(--swatch);
   }
   .swatch.outlined { background: transparent; border: 2px solid var(--fg); }
+  .swatch.dashed { border-style: dashed; border-color: var(--muted); }
   .options {
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 25; min-width: 100%;
     list-style: none; margin: 0; padding: 4px;

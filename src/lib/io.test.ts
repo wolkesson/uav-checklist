@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseFile, toFile } from './io'
-import { newChecklist, SCHEMA_VERSION } from './model'
+import { isStep, newChecklist, SCHEMA_VERSION, type ChecklistItem, type SectionStyle } from './model'
 import sample from '../../samples/quadcopter-basic.json'
 
 describe('import/export', () => {
@@ -49,5 +49,29 @@ describe('schema v2 -> v3 (item type)', () => {
       { id: '2', kind: 'check', text: 'y', level: 1, critical: true },
     ]))
     expect(c.sections[0].items.map((i) => i.type)).toEqual(['abort', 'critical'])
+  })
+})
+
+describe('schema v4 -> v5 (green and notes sections, caution rows)', () => {
+  it('loads v4 files unchanged', () => {
+    const v4 = { kind: 'uav-checklist', schemaVersion: 4, exportedAt: '', checklists: [
+      { id: 'a', title: 'T', revision: 2, revisionDate: '2025-01-01', status: 'released', updatedAt: '', sections: [
+        { id: 's', title: 'S', style: 'info', items: [{ id: '1', kind: 'check', text: 'x', type: 'abort' }] },
+      ] },
+    ] }
+    const [c] = parseFile(JSON.stringify(v4))
+    expect(c.sections[0].style).toBe('info')
+    expect(c.sections[0].items[0].type).toBe('abort')
+    expect(c.status).toBe('released')
+  })
+})
+
+describe('isStep', () => {
+  it('gives tick boxes to steps only: not caution or abort rows, nothing in notes sections', () => {
+    const s = (style?: SectionStyle) => ({ id: 's', title: 'S', style, items: [] })
+    const i = (type?: ChecklistItem['type']) => ({ id: 'i', kind: 'check' as const, text: 'x', type })
+    expect([undefined, 'bullet', 'critical', 'caution', 'abort'].map((t) => isStep(s('green'), i(t as ChecklistItem['type']))))
+      .toEqual([true, true, true, false, false])
+    expect(isStep(s('notes'), i())).toBe(false)
   })
 })

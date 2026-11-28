@@ -12,7 +12,7 @@ and can be deployed in an airgapped environment.
 - Run mode: tick items off, progress and open-critical count, reset; printable
 - Import / export as JSON files (single list or all)
 - Print layout matching a Word checklist: header with logo, title and revision; footer with
-  effectivity and page number; black / blue / red section boxes; striped rows; bullets; abort rows
+  effectivity and page number; black / blue / green / red section boxes and notes without a box; striped rows; bullets; caution and abort rows
 - Paper size A5 (default), A4 or Letter; one or two (default) columns
 - Print, Save as PDF (through the browser's print dialog) and export to Word (.docx)
 - Inline formatting in any text: `*italic*`, `**bold**`, `^superscript^`

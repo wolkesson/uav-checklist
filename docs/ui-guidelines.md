@@ -49,8 +49,11 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
 - **A choice that has a colour** (e.g. a section's box style) uses a dropdown button with a colour
   square and the name (`SwatchSelect.svelte`): same height as other buttons, with a ▾ arrow.
 - Both work with the keyboard: Arrow keys move, Enter chooses, Escape closes and returns focus.
-- **Sections in the editor show their box colour**: Info sections a blue border and header strip,
-  Emergency sections red, Normal sections neutral, matching the printout.
+- **Sections in the editor show their box colour**: Blue and Green sections a coloured border and
+  header strip, Emergency sections red, Normal sections neutral, Notes sections (printed without a
+  box) a dashed outline, matching the printout.
+- **Only steps get tick boxes when running.** Caution (yellow) and Abort (red) rows, and every row
+  in a Notes section, are information to read, not steps to do: no tick box, not counted in progress.
 
 ## Reordering
 - Items are reordered with a **drag handle** (`DragHandle.svelte`), not up/down arrow buttons.
@@ -101,7 +104,7 @@ every screen. They build on **WCAG 2.2 level AA** (the standard web accessibilit
   | Warning in dialogs | `TriangleAlert` |
 
 - **Mutually exclusive choices use a dropdown**, not separate toggles. Example: an item is exactly
-  one of Normal, Bullet, Critical or Abort (the data model enforces this too). A non-default choice
+  one of Normal, Bullet, Critical, Caution or Abort (the data model enforces this too). A non-default choice
   is also shown in colour on the dropdown, so the row's type is visible at a glance.
 - **Independent on/off settings** use icon toggle buttons (`IconButton` with `pressed`): when on,
   the button gets an accent outline and tint and `aria-pressed="true"`. The tooltip names the setting.
