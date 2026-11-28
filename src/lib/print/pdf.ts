@@ -1,7 +1,7 @@
 /**
  * Direct PDF export (no print dialog). Loaded on demand so pdf-lib is not in the main bundle.
  * Follows the HTML print layout: same geometry (geometry.ts), pagination engine (layout.ts),
- * box styles, striping (bands.ts), bullets and abort rows. Text uses the standard PDF
+ * box styles, striping (bands.ts), bullets, caution and abort rows. Text uses the standard PDF
  * Helvetica fonts (same widths as Arial), so nothing needs embedding and text stays selectable.
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage, type RGB } from 'pdf-lib'
@@ -19,11 +19,14 @@ const BLACK = color('000000')
 const WHITE = color('FFFFFF')
 const SHADE = color('F2F2F2')
 const ABORT = color('E04403')
+const CAUTION = color('FFFF00')
 const DRAFT_RED = color('C00000')
 const STYLE: Record<SectionStyle, { border: RGB; width: number; titleFill?: RGB }> = {
   normal: { border: BLACK, width: 0.5 },
   info: { border: color('00B0F0'), width: 2.25, titleFill: color('00B0F0') },
+  green: { border: color('92D050'), width: 2.25 },
   emergency: { border: color('FF0000'), width: 2.25, titleFill: color('FF0000') },
+  notes: { border: WHITE, width: 0 },
 }
 
 // Sizes match SectionBox.svelte (pt, or mm where named).
@@ -136,7 +139,7 @@ function drawBox(page: PDFPage, s: ChecklistSection, sl: SectionLayout, from: nu
   fonts: Fonts, x: number, top: number, width: number): number {
   const st = STYLE[s.style ?? 'normal']
   const bw = st.width
-  const shade = bands(s.items)
+  const shade = bands(s.items, s.style)
   const innerX = x + bw
   const innerW = width - 2 * bw
   let y = top - bw
@@ -148,7 +151,7 @@ function drawBox(page: PDFPage, s: ChecklistSection, sl: SectionLayout, from: nu
   for (let i = from; i < to; i++) {
     const r = sl.rows[i]
     const abort = r.item.type === 'abort'
-    const fill = abort ? ABORT : shade[i] ? SHADE : undefined
+    const fill = abort ? ABORT : r.item.type === 'caution' ? CAUTION : shade[i] ? SHADE : undefined
     if (fill) page.drawRectangle({ x: innerX, y: y - r.height, width: innerW, height: r.height, color: fill })
     const fg = abort ? WHITE : BLACK
     const left = innerX + PAD_MM * PT
@@ -163,7 +166,7 @@ function drawBox(page: PDFPage, s: ChecklistSection, sl: SectionLayout, from: nu
     y -= r.height
   }
   const height = top - (y - bw)
-  page.drawRectangle({ x: x + bw / 2, y: top - height + bw / 2, width: width - bw, height: height - bw, borderColor: st.border, borderWidth: bw })
+  if (bw) page.drawRectangle({ x: x + bw / 2, y: top - height + bw / 2, width: width - bw, height: height - bw, borderColor: st.border, borderWidth: bw })
   return height
 }
 

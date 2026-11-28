@@ -19,7 +19,9 @@ const TITLE_FONT = 'Arial Black'
 const STYLE: Record<SectionStyle, { border: string; size: number; titleFill?: string }> = {
   normal: { border: '000000', size: 4 },
   info: { border: '00B0F0', size: 18, titleFill: '00B0F0' },
+  green: { border: '92D050', size: 18 },
   emergency: { border: 'FF0000', size: 18, titleFill: 'FF0000' },
+  notes: { border: 'FFFFFF', size: 0 },
 }
 const NONE = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
 
@@ -40,9 +42,9 @@ const tight = { before: 0, after: 0, line: 240, lineRule: LineRuleType.AUTO }
 function sectionTable(s: ChecklistSection, widthMm: number): Table {
   const st = STYLE[s.style ?? 'normal']
   const width = mm(widthMm)
-  const border = { style: BorderStyle.SINGLE, size: st.size, color: st.border }
+  const border = st.size ? { style: BorderStyle.SINGLE, size: st.size, color: st.border } : NONE
   const cellMargins = { left: mm(2), right: mm(2), top: 0, bottom: 0 }
-  const shade = bands(s.items)
+  const shade = bands(s.items, s.style)
   const white = st.titleFill ? 'FFFFFF' : undefined
 
   const title = new TableRow({
@@ -65,7 +67,7 @@ function sectionTable(s: ChecklistSection, widthMm: number): Table {
   const last = s.items.length - 1
   const rows = s.items.map((it, i) => {
     const abort = it.type === 'abort'
-    const fill = abort ? 'E04403' : shade[i] ? 'F2F2F2' : undefined
+    const fill = abort ? 'E04403' : it.type === 'caution' ? 'FFFF00' : shade[i] ? 'F2F2F2' : undefined
     const color = abort ? 'FFFFFF' : undefined
     const bullet = it.type === 'bullet'
     const tabStops = [

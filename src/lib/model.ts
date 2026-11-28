@@ -2,7 +2,7 @@
  * Checklist data model. This is the contract for storage and for import/export
  * files, so changes must bump SCHEMA_VERSION and add a migration in migrate().
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 export const FILE_KIND = 'uav-checklist'
 
 export type ItemKind = 'check' | 'note' | 'value'
@@ -18,9 +18,11 @@ export interface ChecklistItem {
    * What kind of row this is; an item is exactly one of these. Absent = normal.
    * - bullet: indented under the item above (moves with it)
    * - critical: must never be skipped
-   * - abort: highlighted row, e.g. "ON ABORT ... LAND"
+   * - caution: yellow warning row, e.g. "Motor temperature limit"
+   * - abort: red row, e.g. "ON ABORT ... LAND"
+   * Caution and abort rows are not steps of the checklist: they have no tick box when running.
    */
-  type?: 'bullet' | 'critical' | 'abort'
+  type?: 'bullet' | 'critical' | 'caution' | 'abort'
 }
 
 export type ItemType = NonNullable<ChecklistItem['type']> | 'normal'
@@ -28,18 +30,30 @@ export const ITEM_TYPES: { value: ItemType; label: string }[] = [
   { value: 'normal', label: 'Normal' },
   { value: 'bullet', label: 'Bullet' },
   { value: 'critical', label: 'Critical' },
+  { value: 'caution', label: 'Caution' },
   { value: 'abort', label: 'Abort' },
 ]
 export const itemType = (i: ChecklistItem): ItemType => i.type ?? 'normal'
 export const isBullet = (i: ChecklistItem) => i.type === 'bullet'
 
-/** Box style used when printing: black, blue (info / first flight) or red (emergency). */
-export type SectionStyle = 'normal' | 'info' | 'emergency'
+/**
+ * Box style used when printing. The value 'info' is the blue box (kept for old files).
+ * - normal: black box; blue (info / first flight) and green (info with tick boxes)
+ * - emergency: red box
+ * - notes: no box and no tick boxes, for reference text such as performance figures
+ */
+export type SectionStyle = 'normal' | 'info' | 'green' | 'emergency' | 'notes'
 export const SECTION_STYLES: { value: SectionStyle; label: string }[] = [
   { value: 'normal', label: 'Normal' },
-  { value: 'info', label: 'Info' },
+  { value: 'info', label: 'Blue' },
+  { value: 'green', label: 'Green' },
   { value: 'emergency', label: 'Emergency' },
+  { value: 'notes', label: 'Notes' },
 ]
+
+/** Whether the item is a step that gets a tick box when the checklist is run. */
+export const isStep = (s: ChecklistSection, i: ChecklistItem) =>
+  s.style !== 'notes' && i.type !== 'caution' && i.type !== 'abort'
 
 export type PaperSize = 'A5' | 'A4' | 'Letter'
 export const PAPER_SIZES: Record<PaperSize, { width: number; height: number }> = {
@@ -149,6 +163,8 @@ export function migrate(data: { schemaVersion: number; checklists: unknown[] }):
       if (!c.revisionDate && c.updatedAt) c.revisionDate = c.updatedAt.slice(0, 10)
     }
   }
+  // v4 -> v5 only added values (section styles 'green' and 'notes', item type 'caution'), so
+  // v4 data is already valid v5 data. The bump makes older apps refuse files that use them.
   data.checklists.forEach(assertChecklist)
   return data.checklists as Checklist[]
 }
